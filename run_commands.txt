@@ -1,0 +1,8 @@
+visualize:
+cd CoBEVT/opv2v
+python opencood/visualization/visialize_camera.py [--scene ${SCENE_NUMBER} --sample ${SAMPLE_NUMBER}]
+
+train: 1 GPU::
+python opencood/tools/train_camera.py --hypes_yaml ${CONFIG_FILE} [--model_dir  ${CHECKPOINT_FOLDER}]
+
+python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints/config.yaml --model_dir  opencood/checkpoints
