@@ -159,4 +159,4 @@ dependencies:
       - werkzeug==3.0.6
       - widgetsnbextension==4.0.13
       - zipp==3.20.2
-prefix: /home/shilpa/anaconda3/envs/cobevt_env
+# prefix: /home/shilpa/anaconda3/envs/cobevt_env

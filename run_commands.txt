@@ -6,3 +6,44 @@ train: 1 GPU::
 python opencood/tools/train_camera.py --hypes_yaml ${CONFIG_FILE} [--model_dir  ${CHECKPOINT_FOLDER}]
 
 python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints/config.yaml --model_dir  opencood/checkpoints
+
+test 1 GPU:
+
+python opencood/tools/inference_camera.py --model_dir opencood/checkpoints/models_pth_origcobevt
+
+Installation
+
+# Clone repo
+git clone https://github.com/shilpa2301/CoBEVT_AutoNet.git
+
+cd CoBEVT/opv2v
+
+# Setup conda environment
+conda env create -f cobevt_env.yaml 
+
+conda activate cobevt_env
+conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3 -c pytorch
+
+# Install dependencies
+
+python opencood/utils/setup.py build_ext --inplace
+python setup.py develop
+
+pip install shapely --only-binary shapely
+
+
+
+To quickly visualize a single sample of the data:
+
+cd CoBEVT/opv2v
+python opencood/visualization/visialize_camera.py [--scene ${SCENE_NUMBER} --sample ${SAMPLE_NUMBER}]
+scene: The ith scene in the data. Default: 4
+sample: The jth sample in the ith scene. Default: 10
+
+
+Tensorboard on slurm:
+tensorboard --logdir=opencood/checkpoints/
+ssh -L 6006:localhost:6006 smukh039@dune1
+
+batch job:
+sbatch -p cisl --gres=gpu:1 --mem=10g --time=7-0:00:00 run_job.sh

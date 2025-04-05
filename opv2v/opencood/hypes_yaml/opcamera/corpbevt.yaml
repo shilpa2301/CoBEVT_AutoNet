@@ -1,6 +1,6 @@
 name: fax # only used for demonstration data api
-root_dir: '/home/shilpa/datasets/OPV2V_orig/OPV2V/train'
-validate_dir: '//home/shilpa/datasets/OPV2V_orig/OPV2V/validate'
+root_dir: '/data/HangQiu/data/OPV2V/train'
+validate_dir: '/data/HangQiu/data/OPV2V/validate'
 
 
 train_params:

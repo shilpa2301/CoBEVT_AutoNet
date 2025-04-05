@@ -1,0 +1,4 @@
+195055 slurm - 50% - 1743728312 ckp
+alien3 - 100%
+195068 - CoBEVT orig - 11 epochs Dynamic IoU: 0.135197
+195108 - 100% - 1743785004 ckp_100

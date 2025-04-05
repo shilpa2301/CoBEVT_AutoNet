@@ -14,17 +14,28 @@ def get_dist_info():
 
 
 def init_distributed_mode(args):
-    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        args.rank = int(os.environ["RANK"])
-        args.world_size = int(os.environ['WORLD_SIZE'])
-        args.gpu = int(os.environ['LOCAL_RANK'])
-    elif 'SLURM_PROCID' in os.environ:
-        args.rank = int(os.environ['SLURM_PROCID'])
-        args.gpu = args.rank % torch.cuda.device_count()
-    else:
-        print('Not using distributed mode')
-        args.distributed = False
-        return
+    #shilpa
+    # print("SLURM Environment Variables:")
+    # print("RANK:", os.environ.get("RANK"))
+    # print("WORLD_SIZE:", os.environ.get("WORLD_SIZE"))
+    # print("LOCAL_RANK:", os.environ.get("LOCAL_RANK"))
+    # print("SLURM_PROCID:", os.environ.get("SLURM_PROCID"))
+
+    # if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
+    #     args.rank = int(os.environ["RANK"])
+    #     args.world_size = int(os.environ['WORLD_SIZE'])
+    #     args.gpu = int(os.environ['LOCAL_RANK'])
+    # elif 'SLURM_PROCID' in os.environ:
+    #     args.rank = int(os.environ['SLURM_PROCID'])
+    #     args.gpu = args.rank % torch.cuda.device_count()
+    # else:
+        # print('Not using distributed mode')
+        # args.distributed = False
+        # return
+    print('Not using distributed mode')
+    args.distributed = False
+    return
+    
 
     args.distributed = True
 

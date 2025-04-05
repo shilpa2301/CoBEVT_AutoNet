@@ -1,0 +1,50 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: CoBEVT (Conda Env)",
+            "type": "python",
+            "request": "launch",
+            // "program": "${workspaceFolder}/test.py",
+            //bevuncertainty inference
+            // "program": "${workspaceFolder}/MultiModalityPerception/opv2v/opencood/tools/inference_camera.py",
+            // "program": "${workspaceFolder}/MultiModalityPerception/opv2v/opencood/tools/bev_auto.py",
+            // "program": "${workspaceFolder}/opv2v/opencood/tools/train_mmcobevt_det.py",
+            "program": "${workspaceFolder}/opv2v/opencood/tools/train_camera.py",
+            // "program": "${workspaceFolder}/opv2v/opencood/tools/generate_trajectory_gt.py",
+            //traj gt
+            // "program": "${workspaceFolder}/Trajectory_OPV2V/CMP/DatasetPreprocess/OPV2V2dict.py",
+            // "program": "${workspaceFolder}/Trajectory_OPV2V/extract_pickle.py",
+            "args": [
+                //cobevt
+                "--hypes_yaml", "${workspaceFolder}/opv2v/opencood/checkpoints_test/config.yaml",
+                "--model_dir", "${workspaceFolder}/opv2v/opencood/checkpoints_test/"
+                //bevuncertainty inference
+                // "--model_dir", "${workspaceFolder}/MultiModalityPerception/opv2v/opencood/logs/bevfusion_lidar_only_seg"
+                // "--hypes_yaml", "${workspaceFolder}/opv2v/opencood/logs/camera_detection_swint/config.yaml",
+                // "--model_dir", "${workspaceFolder}/opv2v/opencood/logs/camera_detection_swint/"
+                // "--hypes_yaml", "${workspaceFolder}/opv2v/opencood/logs/test/config.yaml",
+                // "--model_dir", "${workspaceFolder}/opv2v/opencood/logs/test/"
+                // "--hypes_yaml", "${workspaceFolder}/opv2v/opencood/logs/generate_gt/config.yaml",
+                // "--model_dir", "${workspaceFolder}/opv2v/opencood/logs/generate_gt/"
+            ],
+            // "cwd": "${workspaceFolder}/MultiModalityPerception",
+            // "env": {
+            //   "PYTHONPATH": "${workspaceFolder}/MultiModalityPerception"
+            // },
+            // "cwd": "${workspaceFolder}/Trajectory_OPV2V",
+            // "env": {
+            //   "PYTHONPATH": "${workspaceFolder}/Trajectory_OPV2V"
+            // },
+            "cwd": "${workspaceFolder}",
+            "env": {
+              "PYTHONPATH": "${workspaceFolder}"
+            },
+            // "python": "${command:python.interpreterPath}",  // Points to your Conda environment's interpreter
+            "python": "/home/csgrad/smukh039/miniforge3/envs/cobevt_env/bin/python",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}

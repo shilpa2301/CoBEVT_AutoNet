@@ -550,7 +550,7 @@ class FAXModule(nn.Module):
         #shilpa select bev points to send to cav
         #assume 30 % data to request
         orig_bev_data_from_all_cav = x
-        percentage_data_to_request=0.5
+        percentage_data_to_request=1.0
         reshaped_constructed_data_all = torch.zeros_like(x) 
         data_at_index_0 = x[0]  # Shape: (128, 32, 32)
         dim_len,height, width = data_at_index_0.shape  # Extract H and W

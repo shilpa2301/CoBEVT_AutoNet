@@ -1,6 +1,6 @@
 name: base_camera # only used for demonstration data api
-root_dir: '/home/shilpa/datasets/OPV2V_orig/OPV2V/test'
-validate_dir: '/home/shilpa/datasets/OPV2V_orig/OPV2V/test'
+root_dir: /data/HangQiu/data/OPV2V/train' #was test
+validate_dir: '/data/HangQiu/data/OPV2V/test'
 
 
 train_params:

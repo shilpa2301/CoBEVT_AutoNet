@@ -32,6 +32,9 @@ def train_parser():
 
 
 def main():
+    #shilpa
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
     opt = train_parser()
     hypes = yaml_utils.load_yaml(opt.hypes_yaml, opt)
 
@@ -84,7 +87,7 @@ def main():
 
     print('---------------Creating Model------------------')
     model = train_utils.create_model(hypes)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # if we want to train from last checkpoint.
     if opt.model_dir:

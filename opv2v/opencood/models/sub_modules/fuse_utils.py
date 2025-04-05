@@ -45,7 +45,7 @@ def regroup(dense_feature, record_len, max_len):
                                   dim=0)
 
         # 1, 5C, H, W
-        split_feature = split_feature.view(-1,
+        split_feature = split_feature.reshape(-1,
                                            feature_shape[2],
                                            feature_shape[3]).unsqueeze(0)
         regroup_features.append(split_feature)

@@ -1,13 +1,13 @@
 name: fax # only used for demonstration data api
-root_dir: '/home/shilpa/datasets/OPV2V_orig/OPV2V/train'
-validate_dir: '/home/shilpa/datasets/OPV2V_orig/OPV2V/validate'
+root_dir: '/data/HangQiu/data/OPV2V/train'
+validate_dir: '/data/HangQiu/data/OPV2V/validate'
 
 
 train_params:
   batch_size: &batch_size 1
   epoches: &epoches 151
-  eval_freq: 5
-  save_freq: 5
+  eval_freq: 1
+  save_freq: 1
   max_cav: &max_cav 5
   visible: true
 

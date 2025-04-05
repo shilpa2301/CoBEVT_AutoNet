@@ -261,20 +261,30 @@ class CorpBEVT(nn.Module):
         #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
         selected_output_values = torch.zeros(batch_size, max_cav, channels, num_selected, device=output.device)  # [1, 5, 128, 307]
 
-        # Iterate over batch and cav dimensions
-        for b in range(batch_size):
-            for l in range(max_cav):
-                for i in range(num_selected):
-                    x, y = selected_transformed_grid[b, l, i]  # Extract (x, y) coordinates
-                    x = int(x)  # Convert to integer for indexing
-                    y = int(y)  # Convert to integer for indexing
+        # Flatten the coordinates for batch and cav dimensions
+        selected_transformed_grid = selected_transformed_grid.view(batch_size * max_cav, num_selected, -1)  # Shape: [B*L, 307, 2]
+        output_flat = output.reshape(batch_size * max_cav, channels, height * width)  # Shape: [B*L, C, H*W]
+        # Compute indices for flattened grid
+        indices = selected_transformed_grid[..., 0] * width + selected_transformed_grid[..., 1]  # Shape: [B*L, 307]
+        indices = indices.long()  # Convert to integer
+        # Extract values using gather
+        selected_output_values = torch.gather(output_flat, 2, indices.unsqueeze(1).expand(-1, channels, -1))  # Shape: [B*L, C, 307]
+        selected_output_values = selected_output_values.view(batch_size, max_cav, channels, num_selected) 
+
+        # # Iterate over batch and cav dimensions
+        # for b in range(batch_size):
+        #     for l in range(max_cav):
+        #         for i in range(num_selected):
+        #             x, y = selected_transformed_grid[b, l, i]  # Extract (x, y) coordinates
+        #             x = int(x)  # Convert to integer for indexing
+        #             y = int(y)  # Convert to integer for indexing
                     
-                    # Check bounds to avoid indexing errors
-                    if 0 <= x < output.shape[3] and 0 <= y < output.shape[4]:
-                        # Fetch values from output at the transformed locations
-                        # selected_output_values[b, l, :, i] = output[b, l, :, x, y]
-                        selected_output_values = selected_output_values.clone()
-                        selected_output_values[b, l, :, i] = output[b, l, :, x, y]
+        #             # Check bounds to avoid indexing errors
+        #             if 0 <= x < output.shape[3] and 0 <= y < output.shape[4]:
+        #                 # Fetch values from output at the transformed locations
+        #                 # selected_output_values[b, l, :, i] = output[b, l, :, x, y]
+        #                 selected_output_values = selected_output_values.clone()
+        #                 selected_output_values[b, l, :, i] = output[b, l, :, x, y]
 
         #shilpa stack cav data at ego
         # Step 1: Extract cav_id=0 data
@@ -284,26 +294,50 @@ class CorpBEVT(nn.Module):
         replicated_data = cav_id_0_data.unsqueeze(0).expand(orig_bev_data_from_all_cav.shape[0], -1, -1, -1)  # Shape: [5, 128, 32, 32]
         replicated_data = replicated_data.unsqueeze(0).expand(1, -1, -1, -1, -1)  # Shape: [1, 5, 128, 32, 32]
         
-        # Step 3: Replace values at locations indicated by selected_transformed_grid
-        batch_size, max_cav, num_selected, _ = selected_transformed_grid.shape  # [1, 5, 307, 2]
-        channels = selected_output_values.shape[2]  # Number of feature channels (128)
 
-        # Iterate over batch and cav dimensions to update replicated_data
-        for b in range(batch_size):
-            for l in range(orig_bev_data_from_all_cav.shape[0]):
-                for i in range(num_selected):
-                    x, y = selected_transformed_grid[b, l, i]  # Extract (x, y) coordinates
-                    x = int(x)  # Convert to integer for indexing
-                    y = int(y)  # Convert to integer for indexing
+        # Step 3: Replace values at locations indicated by select_indices
+        # Step 1: Reshape replicated_data to [1, k, 128, 1024]
+        replicated_data_flat = replicated_data.view(batch_size, orig_bev_data_from_all_cav.shape[0], channels, height * width)
+
+        # Step 2: Slice selected_output_values to only consider the first k slices
+        selected_output_values_k = selected_output_values[:, :orig_bev_data_from_all_cav.shape[0], :, :]  # Shape: [1, k, 128, 307]
+
+        # Step 3: Expand selected_indices to match the shape of selected_output_values_k
+        selected_indices_expanded = selected_indices.unsqueeze(0).unsqueeze(0).unsqueeze(2)  # Shape: [1, 1, 1, 307]
+        selected_indices_expanded = selected_indices_expanded.expand(batch_size, orig_bev_data_from_all_cav.shape[0], channels, selected_output_values.shape[3])  # Shape: [1, k, 128, 307]
+
+        # Step 4: Replace values in replicated_data_flat using scatter_
+        replicated_data_flat_clone = replicated_data_flat.clone()  # Create a copy of the tensor
+        replicated_data_flat_clone.scatter_(3, selected_indices_expanded, selected_output_values_k)
+
+
+        # Step 5: Reshape replicated_data_flat back to [k, 128, 32, 32]
+        replicated_data = replicated_data_flat_clone.view(orig_bev_data_from_all_cav.shape[0], channels, height, width)
+        
+        # # Step 3: Replace values at locations indicated by selected_transformed_grid
+        # max_cav, num_selected, _ = selected_transformed_grid.shape  # [1, 5, 307, 2]
+        # channels = selected_output_values.shape[2]  # Number of feature channels (128)
+
+        
+
+        # # Iterate over batch and cav dimensions to update replicated_data
+        # for b in range(batch_size):
+        #     for l in range(orig_bev_data_from_all_cav.shape[0]):
+        #         for i in range(num_selected):
+        #             x, y = selected_transformed_grid[ l, i]  # Extract (x, y) coordinates
+        #             x = int(x)  # Convert to integer for indexing
+        #             y = int(y)  # Convert to integer for indexing
                     
-                    # Check bounds to avoid indexing errors
-                    if 0 <= x < replicated_data.shape[3] and 0 <= y < replicated_data.shape[4]:
-                        # Replace the value in replicated_data with the corresponding value from selected_output_values
-                        # replicated_data[b, l, :, x, y] = selected_output_values[b, l, :, i]
-                        replicated_data = replicated_data.clone()
-                        replicated_data[b, l, :, x, y] = selected_output_values[b, l, :, i]
+        #             # Check bounds to avoid indexing errors
+        #             if 0 <= x < replicated_data.shape[3] and 0 <= y < replicated_data.shape[4]:
+        #                 # Replace the value in replicated_data with the corresponding value from selected_output_values
+        #                 # replicated_data[b, l, :, x, y] = selected_output_values[b, l, :, i]
+        #                 replicated_data = replicated_data.clone()
+        #                 replicated_data[b, l, :, x, y] = selected_output_values[b, l, :, i]
 
-        replicated_data = replicated_data.squeeze(0)
+       
+
+        # replicated_data = replicated_data.squeeze(0)
         x = self.fax.selfatt_module(replicated_data, b=batch_size, l=orig_bev_data_from_all_cav.shape[0])
                         
         #shilpa self attention with cav oriented all data

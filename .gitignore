@@ -132,3 +132,6 @@ dmypy.json
 *outputs*
 *egg**
 *logs*
+run_job_*
+checkpoints_*
+checkpoints/
