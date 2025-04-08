@@ -1,3 +1,0 @@
-dune1.cris.local
-Sat Apr  5 12:00:36 PDT 2025
-/home/csgrad/smukh039/miniforge3/envs/cobevt_env/bin/python

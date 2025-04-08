@@ -5,11 +5,12 @@ python opencood/visualization/visialize_camera.py [--scene ${SCENE_NUMBER} --sam
 train: 1 GPU::
 python opencood/tools/train_camera.py --hypes_yaml ${CONFIG_FILE} [--model_dir  ${CHECKPOINT_FOLDER}]
 
-python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints/config.yaml --model_dir  opencood/checkpoints
+python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_orig/config.yaml --model_dir  opencood/checkpoints_orig
 
 test 1 GPU:
 
-python opencood/tools/inference_camera.py --model_dir opencood/checkpoints/models_pth_origcobevt
+python opencood/tools/inference_camera.py --model_dir opencood/checkpoints_100
+python opencood/tools/inference_camera.py --model_dir opencood/checkpoints_orig
 
 Installation
 

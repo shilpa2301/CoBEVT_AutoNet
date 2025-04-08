@@ -183,7 +183,7 @@ class CorpBEVT(nn.Module):
         x = self.encoder(x)
         batch_dict.update({'features': x})
         #shilpa - SA and CA performed both
-        #shilpa - bev is calculated inside fax, so need to get that in output, and send transformer matrix for sttf inside
+        # #shilpa - bev is calculated inside fax, so need to get that in output, and send transformer matrix for sttf inside
         # x = self.fax(batch_dict)
 
         # # B*L, C, H, W
@@ -220,7 +220,7 @@ class CorpBEVT(nn.Module):
         W = x.shape[4]
         
         # Replace non-transformed points with zeros (or another value)
-        output = torch.zeros_like(x)  # Create a tensor of the same shape as x, filled with zeros
+        # output = torch.zeros_like(x)  # Create a tensor of the same shape as x, filled with zeros
         # valid_mask_expanded = valid_mask.unsqueeze(2).expand(-1, -1, x.shape[2], -1, -1)  # Shape: [1, 5, 128, 32, 32]
                 
         # Step 5: Replace Original BEV Data for All Points
@@ -267,27 +267,15 @@ class CorpBEVT(nn.Module):
         # Compute indices for flattened grid
         indices = selected_transformed_grid[..., 0] * width + selected_transformed_grid[..., 1]  # Shape: [B*L, 307]
         indices = indices.long()  # Convert to integer
+        
         # Extract values using gather
         selected_output_values = torch.gather(output_flat, 2, indices.unsqueeze(1).expand(-1, channels, -1))  # Shape: [B*L, C, 307]
         selected_output_values = selected_output_values.view(batch_size, max_cav, channels, num_selected) 
 
-        # # Iterate over batch and cav dimensions
-        # for b in range(batch_size):
-        #     for l in range(max_cav):
-        #         for i in range(num_selected):
-        #             x, y = selected_transformed_grid[b, l, i]  # Extract (x, y) coordinates
-        #             x = int(x)  # Convert to integer for indexing
-        #             y = int(y)  # Convert to integer for indexing
-                    
-        #             # Check bounds to avoid indexing errors
-        #             if 0 <= x < output.shape[3] and 0 <= y < output.shape[4]:
-        #                 # Fetch values from output at the transformed locations
-        #                 # selected_output_values[b, l, :, i] = output[b, l, :, x, y]
-        #                 selected_output_values = selected_output_values.clone()
-        #                 selected_output_values[b, l, :, i] = output[b, l, :, x, y]
 
         #shilpa stack cav data at ego
         # Step 1: Extract cav_id=0 data
+        # print("device of orig_bev_data_from_all_cav=", orig_bev_data_from_all_cav.device)
         cav_id_0_data = orig_bev_data_from_all_cav[batch_dict['ego_mat_index'][0]]  # Shape: [128, 32, 32]
 
         # Step 2: Replicate cav_id=0 data across all CAVs
@@ -313,39 +301,22 @@ class CorpBEVT(nn.Module):
 
         # Step 5: Reshape replicated_data_flat back to [k, 128, 32, 32]
         replicated_data = replicated_data_flat_clone.view(orig_bev_data_from_all_cav.shape[0], channels, height, width)
+        # print("device of replocated_data=", replicated_data.device)
+        #shilpa transform sa fix
+        x = replicated_data
         
-        # # Step 3: Replace values at locations indicated by selected_transformed_grid
-        # max_cav, num_selected, _ = selected_transformed_grid.shape  # [1, 5, 307, 2]
-        # channels = selected_output_values.shape[2]  # Number of feature channels (128)
-
-        
-
-        # # Iterate over batch and cav dimensions to update replicated_data
-        # for b in range(batch_size):
-        #     for l in range(orig_bev_data_from_all_cav.shape[0]):
-        #         for i in range(num_selected):
-        #             x, y = selected_transformed_grid[ l, i]  # Extract (x, y) coordinates
-        #             x = int(x)  # Convert to integer for indexing
-        #             y = int(y)  # Convert to integer for indexing
-                    
-        #             # Check bounds to avoid indexing errors
-        #             if 0 <= x < replicated_data.shape[3] and 0 <= y < replicated_data.shape[4]:
-        #                 # Replace the value in replicated_data with the corresponding value from selected_output_values
-        #                 # replicated_data[b, l, :, x, y] = selected_output_values[b, l, :, i]
-        #                 replicated_data = replicated_data.clone()
-        #                 replicated_data[b, l, :, x, y] = selected_output_values[b, l, :, i]
-
-       
+        # assert torch.allclose(replicated_data, orig_bev_data_from_all_cav), "Reconstructed data does not match original data!"    
 
         # replicated_data = replicated_data.squeeze(0)
-        x = self.fax.selfatt_module(replicated_data, b=batch_size, l=orig_bev_data_from_all_cav.shape[0])
+        #shilpa transform sa fix
+        # x = self.fax.selfatt_module(replicated_data, b=batch_size, l=orig_bev_data_from_all_cav.shape[0])
                         
         #shilpa self attention with cav oriented all data
 
         # B*L, C, H, W
         #shilpa
-        # x = x.squeeze(1)
-        x = x.squeeze(0)
+        #shilpa transform sa fix
+        # x = x.squeeze(0)
 
         # compressor
         #shilpa - to check during ablation study
@@ -357,17 +328,32 @@ class CorpBEVT(nn.Module):
         # perform feature spatial transformation,  B, max_cav, H, W, C
         #shilpa
         # x = self.sttf(x, transformation_matrix)
-        x, _ = self.sttf(x, transformation_matrix)
+        #shilpa transform sa fix
+        # x, _ = self.sttf(x, transformation_matrix)
+
+
+        # com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
+        #     3) if not self.use_roi_mask \
+        #     else get_roi_and_cav_mask(x.shape,
+        #                               mask,
+        #                               transformation_matrix,
+        #                               self.discrete_ratio,
+        #                               self.downsample_rate)
+        
+        x = rearrange(x, 'b l c h w -> b l h w c')
+        transformation_matrix_identity = torch.eye(4, device=transformation_matrix.device).repeat(1, transformation_matrix.shape[1], 1, 1)
         com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
             3) if not self.use_roi_mask \
             else get_roi_and_cav_mask(x.shape,
                                       mask,
-                                      transformation_matrix,
+                                      transformation_matrix_identity,
                                       self.discrete_ratio,
                                       self.downsample_rate)
 
-        # fuse all agents together to get a single bev map, b h w c
+        # # fuse all agents together to get a single bev map, b h w c
         x = rearrange(x, 'b l h w c -> b l c h w')
+        
+    
         x = self.fusion_net(x, com_mask)
         x = x.unsqueeze(1)
 
