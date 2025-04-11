@@ -182,7 +182,7 @@ class CorpBEVT(nn.Module):
 
         x = self.encoder(x)
         batch_dict.update({'features': x})
-        #shilpa - SA and CA performed both
+        # #shilpa - SA and CA performed both
         # #shilpa - bev is calculated inside fax, so need to get that in output, and send transformer matrix for sttf inside
         # x = self.fax(batch_dict)
 

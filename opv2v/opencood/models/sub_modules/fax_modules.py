@@ -496,7 +496,7 @@ class FAXModule(nn.Module):
         self.self_attn = Attention(dim[-1], **config['self_attn'])
 
     
-    #shilpa
+    # shilpa
     # def forward(self, batch):
     #     b, l, n, _, _, _ = batch['inputs'].shape
 
