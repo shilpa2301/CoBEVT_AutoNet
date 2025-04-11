@@ -66,6 +66,71 @@ class STTF(nn.Module):
 
 
     #shilpa sttf find transformed location
+    # def forward(self, x, spatial_correction_matrix):
+    #     """
+    #     Transform the bev features to ego space.
+
+    #     Parameters
+    #     ----------
+    #     x : torch.Tensor
+    #         B L C H W
+    #     spatial_correction_matrix : torch.Tensor
+    #         Transformation matrix to ego
+
+    #     Returns
+    #     -------
+    #     The bev feature same shape as x but with transformation
+    #     """
+    #     dist_correction_matrix = get_discretized_transformation_matrix(
+    #         spatial_correction_matrix, self.discrete_ratio,
+    #         self.downsample_rate)
+
+    #     # transpose and flip to make the transformation correct
+    #     x = rearrange(x, 'b l c h w  -> b l c w h')
+    #     x = torch.flip(x, dims=(4,))
+    #     # Only compensate non-ego vehicles
+    #     B, L, C, H, W = x.shape
+
+    #     T = get_transformation_matrix(
+    #         dist_correction_matrix[:, :, :, :].reshape(-1, 2, 3), (H, W))
+    #     cav_features = warp_affine(x[:, :, :, :, :].reshape(-1, C, H, W), T,
+    #                             (H, W))
+    #     cav_features = cav_features.reshape(B, -1, C, H, W)
+
+    #     # Generate the spatial grid (H x W)
+    #     h_coords, w_coords = torch.meshgrid(torch.arange(H), torch.arange(W), indexing='ij')
+    #     spatial_grid = torch.stack([h_coords, w_coords, torch.ones_like(h_coords)], dim=-1)  # Shape: (H, W, 3)
+
+    #     # Flatten the grid
+    #     spatial_grid_flat = spatial_grid.view(-1, 3)  # Shape: (H*W, 3)
+
+    #     # Repeat the grid for batch and layer dimensions
+    #     spatial_grid_flat = spatial_grid_flat.unsqueeze(0).unsqueeze(0).repeat(B, L, 1, 1).to(T.device)  # Shape: [B, L, H*W, 3]
+
+    #     # Reshape T to match batch and layer dimensions
+    #     T = T.view(B, L, 2, 3)  # Shape: [B, L, 2, 3]
+
+    #     # Perform batched matrix multiplication for each batch and layer
+    #     transformed_grid_flat = torch.einsum('blmj,blkj->blmk', spatial_grid_flat.float(), T.float())  # Shape: [B, L, H*W, 2]
+
+    #     # Reshape back to grid form
+    #     transformed_grid = transformed_grid_flat.view(B, L, H, W, 2)  # Shape: [B, L, H, W, 2]
+
+    #     # Clamp the transformed coordinates to valid ranges
+    #     transformed_grid[..., 0] = torch.clamp(transformed_grid[..., 0], 0, H - 1)
+    #     transformed_grid[..., 1] = torch.clamp(transformed_grid[..., 1], 0, W - 1)
+
+    #     # Map to flattened indices if needed
+    #     mapped_indices = (transformed_grid[..., 0] * W + transformed_grid[..., 1]).long()
+
+    #     # flip and transpose back
+    #     x = cav_features
+    #     x = torch.flip(x, dims=(4,))
+    #     x = rearrange(x, 'b l c w h -> b l h w c')
+
+    #     return x, transformed_grid  # Return the transformed grid
+
+    #shilpa fixed transgormed grid
     def forward(self, x, spatial_correction_matrix):
         """
         Transform the bev features to ego space.
@@ -93,35 +158,15 @@ class STTF(nn.Module):
 
         T = get_transformation_matrix(
             dist_correction_matrix[:, :, :, :].reshape(-1, 2, 3), (H, W))
-        cav_features = warp_affine(x[:, :, :, :, :].reshape(-1, C, H, W), T,
+        cav_features, transformed_grid = warp_affine(x[:, :, :, :, :].reshape(-1, C, H, W), T,
                                 (H, W))
         cav_features = cav_features.reshape(B, -1, C, H, W)
 
-        # Generate the spatial grid (H x W)
-        h_coords, w_coords = torch.meshgrid(torch.arange(H), torch.arange(W), indexing='ij')
-        spatial_grid = torch.stack([h_coords, w_coords, torch.ones_like(h_coords)], dim=-1)  # Shape: (H, W, 3)
-
-        # Flatten the grid
-        spatial_grid_flat = spatial_grid.view(-1, 3)  # Shape: (H*W, 3)
-
-        # Repeat the grid for batch and layer dimensions
-        spatial_grid_flat = spatial_grid_flat.unsqueeze(0).unsqueeze(0).repeat(B, L, 1, 1).to(T.device)  # Shape: [B, L, H*W, 3]
-
-        # Reshape T to match batch and layer dimensions
-        T = T.view(B, L, 2, 3)  # Shape: [B, L, 2, 3]
-
-        # Perform batched matrix multiplication for each batch and layer
-        transformed_grid_flat = torch.einsum('blmj,blkj->blmk', spatial_grid_flat.float(), T.float())  # Shape: [B, L, H*W, 2]
-
-        # Reshape back to grid form
-        transformed_grid = transformed_grid_flat.view(B, L, H, W, 2)  # Shape: [B, L, H, W, 2]
-
-        # Clamp the transformed coordinates to valid ranges
+         # Clamp the transformed coordinates to valid ranges
+        transformed_grid = transformed_grid.view(B, L, H, W, 2)  # Shape: [B, L, H, W, 2]
         transformed_grid[..., 0] = torch.clamp(transformed_grid[..., 0], 0, H - 1)
         transformed_grid[..., 1] = torch.clamp(transformed_grid[..., 1], 0, W - 1)
 
-        # Map to flattened indices if needed
-        mapped_indices = (transformed_grid[..., 0] * W + transformed_grid[..., 1]).long()
 
         # flip and transpose back
         x = cav_features
@@ -129,8 +174,9 @@ class STTF(nn.Module):
         x = rearrange(x, 'b l c w h -> b l h w c')
 
         return x, transformed_grid  # Return the transformed grid
-    
-    
+
+        
+  
 
 
 class CorpBEVT(nn.Module):
@@ -251,7 +297,7 @@ class CorpBEVT(nn.Module):
         flattened_output = output.reshape(batch_size, max_cav, channels, -1) # Shape: [B, L, C, H*W]
 
         # Step 8: Extract values from output using selected indices
-        #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
+        
         selected_transformed_grid = flattened_transformed_grid[..., selected_indices, :]  # Shape: [B, L, 307, 2]
         # Initialize selected_output_values tensor
         batch_size, max_cav, num_selected, _ = selected_transformed_grid.shape  # [1, 5, 307, 2]
@@ -270,6 +316,7 @@ class CorpBEVT(nn.Module):
         
         # Extract values using gather
         selected_output_values = torch.gather(output_flat, 2, indices.unsqueeze(1).expand(-1, channels, -1))  # Shape: [B*L, C, 307]
+        #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
         selected_output_values = selected_output_values.view(batch_size, max_cav, channels, num_selected) 
 
 
@@ -278,10 +325,18 @@ class CorpBEVT(nn.Module):
         # print("device of orig_bev_data_from_all_cav=", orig_bev_data_from_all_cav.device)
         cav_id_0_data = orig_bev_data_from_all_cav[batch_dict['ego_mat_index'][0]]  # Shape: [128, 32, 32]
 
-        # Step 2: Replicate cav_id=0 data across all CAVs
-        replicated_data = cav_id_0_data.unsqueeze(0).expand(orig_bev_data_from_all_cav.shape[0], -1, -1, -1)  # Shape: [5, 128, 32, 32]
-        replicated_data = replicated_data.unsqueeze(0).expand(1, -1, -1, -1, -1)  # Shape: [1, 5, 128, 32, 32]
+        # # Step 2: Replicate cav_id=0 data across all CAVs
+        # replicated_data = cav_id_0_data.unsqueeze(0).expand(orig_bev_data_from_all_cav.shape[0], -1, -1, -1)  # Shape: [5, 128, 32, 32]
+        # replicated_data = replicated_data.unsqueeze(0).expand(1, -1, -1, -1, -1)  # Shape: [1, 5, 128, 32, 32]
         
+        replicated_data = torch.zeros(( orig_bev_data_from_all_cav.shape[0], channels, height, width), device=output.device)  # Shape: [5, 128, 32, 32]
+
+        # Step 2: Replace the 0th index of the first dimension with cav_id_0_data
+        replicated_data[0] = cav_id_0_data
+
+        # Step 3: Expand to shape [1, 5, 128, 32, 32]
+        replicated_data = replicated_data.unsqueeze(0)
+
 
         # Step 3: Replace values at locations indicated by select_indices
         # Step 1: Reshape replicated_data to [1, k, 128, 1024]
@@ -310,14 +365,7 @@ class CorpBEVT(nn.Module):
         # replicated_data = replicated_data.squeeze(0)
         #shilpa transform sa fix
         # x = self.fax.selfatt_module(replicated_data, b=batch_size, l=orig_bev_data_from_all_cav.shape[0])
-                        
-        #shilpa self attention with cav oriented all data
-
-        # B*L, C, H, W
-        #shilpa
-        #shilpa transform sa fix
-        # x = x.squeeze(0)
-
+    
         # compressor
         #shilpa - to check during ablation study
         if self.compression:
@@ -328,9 +376,6 @@ class CorpBEVT(nn.Module):
         # perform feature spatial transformation,  B, max_cav, H, W, C
         #shilpa
         # x = self.sttf(x, transformation_matrix)
-        #shilpa transform sa fix
-        # x, _ = self.sttf(x, transformation_matrix)
-
 
         # com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
         #     3) if not self.use_roi_mask \

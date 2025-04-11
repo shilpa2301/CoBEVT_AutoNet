@@ -96,9 +96,12 @@ def get_rotated_roi(shape, correction_matrix):
     # (B,L,1,H,W)
     x = torch.ones((B, L, 1, H, W)).to(correction_matrix.dtype).to(
         correction_matrix.device)
-    # (B*L,1,H,W)
-    roi_mask = warp_affine(x.reshape(-1, 1, H, W), correction_matrix,
+    #shilpa fix transformation
+    roi_mask, _ = warp_affine(x.reshape(-1, 1, H, W), correction_matrix,
                            dsize=(H, W), mode="nearest")
+    # (B*L,1,H,W)
+    # roi_mask = warp_affine(x.reshape(-1, 1, H, W), correction_matrix,
+                        #    dsize=(H, W), mode="nearest")
     # (B,L,C,H,W)
     roi_mask = torch.repeat_interleave(roi_mask, C, dim=1).reshape(B, L, C, H,
                                                                    W)
@@ -313,46 +316,99 @@ def convert_affinematrix_to_homography(A):
     H[..., -1, -1] += 1.0
     return H
 
+#shilpa
+# def warp_affine(
+#         src, M, dsize,
+#         mode='bilinear',
+#         padding_mode='zeros',
+#         align_corners=True):
+#     r"""
+#     Transform the src based on transformation matrix M.
+#     Args:
+#         src : torch.Tensor
+#             Input feature map with shape :math:`(B,C,H,W)`.
+#         M : torch.Tensor
+#             Transformation matrix with shape :math:`(B,2,3)`.
+#         dsize : tuple
+#             Tuple of output image H_out and W_out.
+#         mode : str
+#             Interpolation methods for F.grid_sample.
+#         padding_mode : str
+#             Padding methods for F.grid_sample.
+#         align_corners : boolean
+#             Parameter of F.affine_grid.
+
+#     Returns:
+#         Transformed features with shape :math:`(B,C,H,W)`.
+#     """
+
+#     B, C, H, W = src.size()
+
+#     # we generate a 3x3 transformation matrix from 2x3 affine
+#     M_3x3 = convert_affinematrix_to_homography(M)
+#     dst_norm_trans_src_norm = normalize_homography(M_3x3, (H, W), dsize)
+
+#     # src_norm_trans_dst_norm = torch.inverse(dst_norm_trans_src_norm)
+#     src_norm_trans_dst_norm = _torch_inverse_cast(dst_norm_trans_src_norm)
+#     grid = F.affine_grid(src_norm_trans_dst_norm[:, :2, :],
+#                          [B, C, dsize[0], dsize[1]],
+#                          align_corners=align_corners)
+
+#     return F.grid_sample(src.half() if grid.dtype==torch.half else src, grid, align_corners=align_corners, mode=mode,
+#                          padding_mode=padding_mode)
 
 def warp_affine(
-        src, M, dsize,
-        mode='bilinear',
-        padding_mode='zeros',
-        align_corners=True):
-    r"""
-    Transform the src based on transformation matrix M.
-    Args:
-        src : torch.Tensor
-            Input feature map with shape :math:`(B,C,H,W)`.
-        M : torch.Tensor
-            Transformation matrix with shape :math:`(B,2,3)`.
-        dsize : tuple
-            Tuple of output image H_out and W_out.
-        mode : str
-            Interpolation methods for F.grid_sample.
-        padding_mode : str
-            Padding methods for F.grid_sample.
-        align_corners : boolean
-            Parameter of F.affine_grid.
+            src, M, dsize,
+            mode='bilinear',
+            padding_mode='zeros',
+            align_corners=True):
+        r"""
+        Transform the src based on transformation matrix M and return the transformed grid.
+        Args:
+            src : torch.Tensor
+                Input feature map with shape :math:`(B,C,H,W)`.
+            M : torch.Tensor
+                Transformation matrix with shape :math:`(B,2,3)`.
+            dsize : tuple
+                Tuple of output image H_out and W_out.
+            mode : str
+                Interpolation methods for F.grid_sample.
+            padding_mode : str
+                Padding methods for F.grid_sample.
+            align_corners : boolean
+                Parameter of F.affine_grid.
 
-    Returns:
-        Transformed features with shape :math:`(B,C,H,W)`.
-    """
+        Returns:
+            Transformed features with shape :math:`(B,C,H,W)` and transformed grid.
+        """
 
-    B, C, H, W = src.size()
+        B, C, H, W = src.size()
 
-    # we generate a 3x3 transformation matrix from 2x3 affine
-    M_3x3 = convert_affinematrix_to_homography(M)
-    dst_norm_trans_src_norm = normalize_homography(M_3x3, (H, W), dsize)
+        # Convert affine matrix to homography
+        M_3x3 = convert_affinematrix_to_homography(M)
+        dst_norm_trans_src_norm = normalize_homography(M_3x3, (H, W), dsize)
 
-    # src_norm_trans_dst_norm = torch.inverse(dst_norm_trans_src_norm)
-    src_norm_trans_dst_norm = _torch_inverse_cast(dst_norm_trans_src_norm)
-    grid = F.affine_grid(src_norm_trans_dst_norm[:, :2, :],
-                         [B, C, dsize[0], dsize[1]],
-                         align_corners=align_corners)
+        # Invert the homography matrix
+        src_norm_trans_dst_norm = _torch_inverse_cast(dst_norm_trans_src_norm)
 
-    return F.grid_sample(src.half() if grid.dtype==torch.half else src, grid, align_corners=align_corners, mode=mode,
-                         padding_mode=padding_mode)
+        # Generate the affine grid
+        grid = F.affine_grid(src_norm_trans_dst_norm[:, :2, :],
+                            [B, C, dsize[0], dsize[1]],
+                            align_corners=align_corners)
+
+        # Scale the grid to pixel coordinates
+        grid_pixel = F.affine_grid(dst_norm_trans_src_norm[:, :2, :],
+                            [B, C, dsize[0], dsize[1]],
+                            align_corners=align_corners)
+        grid_pixel[..., 0] = (grid_pixel[..., 0] + 1) * 0.5 * (dsize[1] - 1)  # Scale x-coordinates
+        grid_pixel[..., 1] = (grid_pixel[..., 1] + 1) * 0.5 * (dsize[0] - 1)  # Scale y-coordinates
+
+        # Apply the transformation using grid_sample
+        transformed_features = F.grid_sample(src.half() if grid.dtype == torch.half else src, grid, align_corners=align_corners, mode=mode,
+                                            padding_mode=padding_mode)
+
+        return transformed_features, grid_pixel.to(M.device)
+
 
 
 class Test:

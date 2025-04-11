@@ -1,6 +1,10 @@
 name: base_camera # only used for demonstration data api
-root_dir: /data/HangQiu/data/OPV2V/train' #was test
-validate_dir: '/data/HangQiu/data/OPV2V/test'
+# root_dir: /data/HangQiu/data/OPV2V/train' #was test
+# validate_dir: '/data/HangQiu/data/OPV2V/test'
+root_dir: '/data/HangQiu/proj/autonet-RL/sub_OPV2V/train'
+validate_dir: '/data/HangQiu/proj/autonet-RL/sub_OPV2V/validate'
+
+
 
 
 train_params:

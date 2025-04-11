@@ -6,6 +6,21 @@ train: 1 GPU::
 python opencood/tools/train_camera.py --hypes_yaml ${CONFIG_FILE} [--model_dir  ${CHECKPOINT_FOLDER}]
 
 python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_orig/config.yaml --model_dir  opencood/checkpoints_orig
+CUDA_LAUNCH_BLOCKING=1 python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_test/config.yaml --model_dir  opencood/checkpoints_test
+
+train multiple GPUs:
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4  --use_env python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_orig/config.yaml --model_dir  opencood/checkpoints_orig
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2  --use_env /home/csgrad/smukh039/miniforge3/envs/cobevt_env/bin/python /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/tools/train_camera.py --hypes_yaml /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/checkpoints_sub100/config.yaml --model_dir  /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/checkpoints_sub100
+CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 \
+    /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/tools/train_camera.py \
+    --hypes_yaml /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/checkpoints_sub100/config.yaml \
+    --model_dir /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/checkpoints_sub100
+
+CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 \
+    /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/tools/train_camera.py \
+    --hypes_yaml /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/checkpoints_test/config.yaml \
+    --model_dir /home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet/opv2v/opencood/checkpoints_test
+
 
 test 1 GPU:
 
@@ -48,3 +63,6 @@ ssh -L 6006:localhost:6006 smukh039@dune1
 
 batch job:
 sbatch -p cisl --gres=gpu:1 --mem=10g --time=7-0:00:00 run_job.sh
+sbatch -p batch -t 7-00:00:00 run_job.sh
+
+sbatch -p cisl --gres=gpu:2 --mem=20g --time=7-0:00:00 run_job.sh

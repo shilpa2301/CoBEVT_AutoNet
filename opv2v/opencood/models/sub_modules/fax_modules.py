@@ -496,7 +496,7 @@ class FAXModule(nn.Module):
         self.self_attn = Attention(dim[-1], **config['self_attn'])
 
     
-    #shilpa
+    # shilpa
     # def forward(self, batch):
     #     b, l, n, _, _, _ = batch['inputs'].shape
 
@@ -552,7 +552,7 @@ class FAXModule(nn.Module):
         #shilpa select bev points to send to cav
         #assume 30 % data to request
         orig_bev_data_from_all_cav = x
-        percentage_data_to_request=0.5
+        percentage_data_to_request=1.0 #0.5
         reshaped_constructed_data_all = torch.zeros_like(x) 
         data_at_index_0 = x[0]  # Shape: (128, 32, 32)
         dim_len,height, width = data_at_index_0.shape  # Extract H and W
@@ -584,9 +584,4 @@ class FAXModule(nn.Module):
         
         return reshaped_constructed_data_all, orig_bev_data_from_all_cav, random_indices
 
-    #shilpa
-    def selfatt_module(self, x, b, l):
-                    
-        x = self.self_attn(x)
-        x = rearrange(x, '(b l) ... -> b l ...', b=b, l=l)
-        return x
+
