@@ -294,36 +294,62 @@ class CorpBEVT(nn.Module):
 
         # Step 6: Flatten transformed_grid and output for easier indexing
         batch_size, max_cav, channels, height, width = output.shape
-        flattened_transformed_grid = transformed_grid.view(batch_size, max_cav, -1, 2)  # Shape: [B, L, H*W, 2]
+        flattened_transformed_grid = transformed_grid.view(batch_size, max_cav, -1, 2).long()  # Shape: [B, L, H*W, 2]
         flattened_output = output.reshape(batch_size, max_cav, channels, -1) # Shape: [B, L, C, H*W]
 
+
+        #shilpa fix transform selection
         # Step 8: Extract values from output using selected indices
-        p_1 = selected_indices // height
-        t_1 = p_1 * height
-        q_1 = selected_indices - t_1
-        corrected_selected_indices = (q_1 * height + p_1).to(selected_indices.device)  # Shape: [B, L, 307]
+        # p_1 = selected_indices // height
+        # t_1 = p_1 * height
+        # q_1 = selected_indices - t_1
+        # corrected_selected_indices = (q_1 * height + p_1).to(selected_indices.device)  # Shape: [B, L, 307]
         
-        selected_transformed_grid = flattened_transformed_grid[..., corrected_selected_indices, :]  # Shape: [B, L, 307, 2]
-        # Initialize selected_output_values tensor
-        batch_size, max_cav, num_selected, _ = selected_transformed_grid.shape  # [1, 5, 307, 2]
-        channels = output.shape[2]  # Number of feature channels (128)
-
-        # Create a tensor to hold the selected output values
-        #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
-        selected_output_values = torch.zeros(batch_size, max_cav, channels, num_selected, device=output.device)  # [1, 5, 128, 307]
-
-        # Flatten the coordinates for batch and cav dimensions
-        selected_transformed_grid = selected_transformed_grid.view(batch_size * max_cav, num_selected, -1)  # Shape: [B*L, 307, 2]
-        output_flat = output.reshape(batch_size * max_cav, channels, height * width)  # Shape: [B*L, C, H*W]
-        # Compute indices for flattened grid
-        indices = selected_transformed_grid[..., 0] * width + selected_transformed_grid[..., 1]  # Shape: [B*L, 307]
-        indices = indices.long()  # Convert to integer
         
-        # Extract values using gather
-        selected_output_values = torch.gather(output_flat, 2, indices.unsqueeze(1).expand(-1, channels, -1))  # Shape: [B*L, C, 307]
-        #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
-        selected_output_values = selected_output_values.view(batch_size, max_cav, channels, num_selected) 
+        # selected_transformed_grid = flattened_transformed_grid[..., corrected_selected_indices, :]  # Shape: [B, L, 307, 2]
+        # # Initialize selected_output_values tensor
+        # batch_size, max_cav, num_selected, _ = selected_transformed_grid.shape  # [1, 5, 307, 2]
+        # channels = output.shape[2]  # Number of feature channels (128)
 
+        # # Create a tensor to hold the selected output values
+        # #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
+        # selected_output_values = torch.zeros(batch_size, max_cav, channels, num_selected, device=output.device)  # [1, 5, 128, 307]
+
+        # # Flatten the coordinates for batch and cav dimensions
+        # selected_transformed_grid = selected_transformed_grid.view(batch_size * max_cav, num_selected, -1)  # Shape: [B*L, 307, 2]
+        # output_flat = output.reshape(batch_size * max_cav, channels, height * width)  # Shape: [B*L, C, H*W]
+        # # Compute indices for flattened grid
+        # indices = selected_transformed_grid[..., 0] * width + selected_transformed_grid[..., 1]  # Shape: [B*L, 307]
+        # indices = indices.long()  # Convert to integer
+        
+        # # Extract values using gather
+        # selected_output_values = torch.gather(output_flat, 2, indices.unsqueeze(1).expand(-1, channels, -1))  # Shape: [B*L, C, 307]
+        # #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
+        # selected_output_values = selected_output_values.view(batch_size, max_cav, channels, num_selected) 
+
+        selected_output_values = torch.zeros(batch_size, max_cav, channels, selected_indices.shape[0], device=output.device) 
+       # Calculate p_1 and q_1 using torch.div
+        p_1 = torch.div(selected_indices, height, rounding_mode='trunc')
+        q_1 = selected_indices % height
+
+        # Convert p_1 and q_1 to long
+        p_1_long = p_1.long()
+        q_1_long = q_1.long()
+
+       # Reshape and expand p_1_long and q_1_long for broadcasting
+        p_1_long = p_1_long.unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, 1024]
+        q_1_long = q_1_long.unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, 1024]
+
+        flattened_transformed_grid = flattened_transformed_grid[..., [1, 0]]
+        mask = (flattened_transformed_grid[..., 0] == p_1_long) & (flattened_transformed_grid[..., 1] == q_1_long)
+
+        # Get the indices of matching locations
+        indices = mask.nonzero(as_tuple=True)
+
+        # Flatten the output for easier indexing
+        output_flat = output.reshape(batch_size, max_cav, channels, height * width)
+
+        selected_output_values[indices[0], indices[1], :, indices[2]] = output_flat[indices[0], indices[1], :, indices[2]]
 
         #shilpa stack cav data at ego
         # Step 1: Extract cav_id=0 data
