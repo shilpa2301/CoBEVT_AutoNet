@@ -9,7 +9,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --job-name="Sub100"
 #SBATCH -p cisl
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --wait-all-nodes=1
 #SBATCH --output=output_%j-%N.txt
 

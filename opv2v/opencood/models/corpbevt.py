@@ -237,6 +237,7 @@ class CorpBEVT(nn.Module):
 
         #shilpa new fax - ca + egosend + cav reconstruction phase 1
         x, orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, transformation_matrix)
+        dummy = orig_bev_data_from_all_cav
 
         #shilpa new fax - individual sttf at cav
         # Extract the number of valid CAV entries
@@ -297,8 +298,12 @@ class CorpBEVT(nn.Module):
         flattened_output = output.reshape(batch_size, max_cav, channels, -1) # Shape: [B, L, C, H*W]
 
         # Step 8: Extract values from output using selected indices
+        p_1 = selected_indices // height
+        t_1 = p_1 * height
+        q_1 = selected_indices - t_1
+        corrected_selected_indices = (q_1 * height + p_1).to(selected_indices.device)  # Shape: [B, L, 307]
         
-        selected_transformed_grid = flattened_transformed_grid[..., selected_indices, :]  # Shape: [B, L, 307, 2]
+        selected_transformed_grid = flattened_transformed_grid[..., corrected_selected_indices, :]  # Shape: [B, L, 307, 2]
         # Initialize selected_output_values tensor
         batch_size, max_cav, num_selected, _ = selected_transformed_grid.shape  # [1, 5, 307, 2]
         channels = output.shape[2]  # Number of feature channels (128)
@@ -326,16 +331,16 @@ class CorpBEVT(nn.Module):
         cav_id_0_data = orig_bev_data_from_all_cav[batch_dict['ego_mat_index'][0]]  # Shape: [128, 32, 32]
 
         # # Step 2: Replicate cav_id=0 data across all CAVs
-        # replicated_data = cav_id_0_data.unsqueeze(0).expand(orig_bev_data_from_all_cav.shape[0], -1, -1, -1)  # Shape: [5, 128, 32, 32]
-        # replicated_data = replicated_data.unsqueeze(0).expand(1, -1, -1, -1, -1)  # Shape: [1, 5, 128, 32, 32]
+        replicated_data = cav_id_0_data.unsqueeze(0).expand(orig_bev_data_from_all_cav.shape[0], -1, -1, -1)  # Shape: [5, 128, 32, 32]
+        replicated_data = replicated_data.unsqueeze(0).expand(1, -1, -1, -1, -1)  # Shape: [1, 5, 128, 32, 32]
         
-        replicated_data = torch.zeros(( orig_bev_data_from_all_cav.shape[0], channels, height, width), device=output.device)  # Shape: [5, 128, 32, 32]
+        # replicated_data = torch.zeros(( orig_bev_data_from_all_cav.shape[0], channels, height, width), device=output.device)  # Shape: [5, 128, 32, 32]
 
-        # Step 2: Replace the 0th index of the first dimension with cav_id_0_data
-        replicated_data[0] = cav_id_0_data
+        # # Step 2: Replace the 0th index of the first dimension with cav_id_0_data
+        # replicated_data[0] = cav_id_0_data
 
-        # Step 3: Expand to shape [1, 5, 128, 32, 32]
-        replicated_data = replicated_data.unsqueeze(0)
+        # # Step 3: Expand to shape [1, 5, 128, 32, 32]
+        # replicated_data = replicated_data.unsqueeze(0)
 
 
         # Step 3: Replace values at locations indicated by select_indices
@@ -373,10 +378,15 @@ class CorpBEVT(nn.Module):
 
         # Reformat to (B, max_cav, C, H, W)
         x, mask = regroup(x, record_len, self.max_cav)
+        
         # perform feature spatial transformation,  B, max_cav, H, W, C
         #shilpa
         # x = self.sttf(x, transformation_matrix)
+        dummy, _ = regroup(dummy, record_len, self.max_cav)
+        dummy, _ = self.sttf(dummy, transformation_matrix)
+        dummy = rearrange(dummy, 'b l h w c -> b l c h w')
 
+        x = rearrange(x, 'b l c h w -> b l h w c')
         # com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
         #     3) if not self.use_roi_mask \
         #     else get_roi_and_cav_mask(x.shape,
@@ -385,7 +395,7 @@ class CorpBEVT(nn.Module):
         #                               self.discrete_ratio,
         #                               self.downsample_rate)
         
-        x = rearrange(x, 'b l c h w -> b l h w c')
+        
         transformation_matrix_identity = torch.eye(4, device=transformation_matrix.device).repeat(1, transformation_matrix.shape[1], 1, 1)
         com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
             3) if not self.use_roi_mask \

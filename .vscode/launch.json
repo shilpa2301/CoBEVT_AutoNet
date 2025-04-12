@@ -44,7 +44,10 @@
             "python": "/home/csgrad/smukh039/miniforge3/envs/cobevt_env/bin/python",
             "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal",
-            "justMyCode": false
+            "justMyCode": false,
+            "xdebugSettings": {
+                "max_depth": -1
+            }
         }
     ]
 }
