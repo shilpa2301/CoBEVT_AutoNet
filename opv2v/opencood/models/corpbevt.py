@@ -237,7 +237,7 @@ class CorpBEVT(nn.Module):
 
         #shilpa new fax - ca + egosend + cav reconstruction phase 1
         x, orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, transformation_matrix)
-        dummy = orig_bev_data_from_all_cav
+        # dummy = orig_bev_data_from_all_cav
 
         #shilpa new fax - individual sttf at cav
         # Extract the number of valid CAV entries
@@ -265,11 +265,7 @@ class CorpBEVT(nn.Module):
         # Create a mask for valid points (where the transformed coordinates are within bounds)
         H = x.shape[3]
         W = x.shape[4]
-        
-        # Replace non-transformed points with zeros (or another value)
-        # output = torch.zeros_like(x)  # Create a tensor of the same shape as x, filled with zeros
-        # valid_mask_expanded = valid_mask.unsqueeze(2).expand(-1, -1, x.shape[2], -1, -1)  # Shape: [1, 5, 128, 32, 32]
-                
+                        
         # Step 5: Replace Original BEV Data for All Points
         # n is the number of entries, c=128, h=32, w=32
         n, c, h, w = orig_bev_data_from_all_cav.shape
@@ -298,59 +294,69 @@ class CorpBEVT(nn.Module):
         flattened_output = output.reshape(batch_size, max_cav, channels, -1) # Shape: [B, L, C, H*W]
 
 
-        #shilpa fix transform selection
-        # Step 8: Extract values from output using selected indices
-        # p_1 = selected_indices // height
-        # t_1 = p_1 * height
-        # q_1 = selected_indices - t_1
-        # corrected_selected_indices = (q_1 * height + p_1).to(selected_indices.device)  # Shape: [B, L, 307]
-        
-        
-        # selected_transformed_grid = flattened_transformed_grid[..., corrected_selected_indices, :]  # Shape: [B, L, 307, 2]
-        # # Initialize selected_output_values tensor
-        # batch_size, max_cav, num_selected, _ = selected_transformed_grid.shape  # [1, 5, 307, 2]
-        # channels = output.shape[2]  # Number of feature channels (128)
-
-        # # Create a tensor to hold the selected output values
-        # #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
-        # selected_output_values = torch.zeros(batch_size, max_cav, channels, num_selected, device=output.device)  # [1, 5, 128, 307]
-
-        # # Flatten the coordinates for batch and cav dimensions
-        # selected_transformed_grid = selected_transformed_grid.view(batch_size * max_cav, num_selected, -1)  # Shape: [B*L, 307, 2]
-        # output_flat = output.reshape(batch_size * max_cav, channels, height * width)  # Shape: [B*L, C, H*W]
-        # # Compute indices for flattened grid
-        # indices = selected_transformed_grid[..., 0] * width + selected_transformed_grid[..., 1]  # Shape: [B*L, 307]
-        # indices = indices.long()  # Convert to integer
-        
-        # # Extract values using gather
-        # selected_output_values = torch.gather(output_flat, 2, indices.unsqueeze(1).expand(-1, channels, -1))  # Shape: [B*L, C, 307]
-        # #shilpa Transmission 2 - this data is transmitted from CAV to ego for response
-        # selected_output_values = selected_output_values.view(batch_size, max_cav, channels, num_selected) 
-
         selected_output_values = torch.zeros(batch_size, max_cav, channels, selected_indices.shape[0], device=output.device) 
-       # Calculate p_1 and q_1 using torch.div
-        p_1 = torch.div(selected_indices, height, rounding_mode='trunc')
-        q_1 = selected_indices % height
+    #    # Calculate p_1 and q_1 using torch.div
+    #     p_1 = torch.div(selected_indices, height, rounding_mode='trunc')
+    #     q_1 = selected_indices % height
 
-        # Convert p_1 and q_1 to long
-        p_1_long = p_1.long()
-        q_1_long = q_1.long()
+    #     # Convert p_1 and q_1 to long
+    #     p_1_long = p_1.long()
+    #     q_1_long = q_1.long()
 
-       # Reshape and expand p_1_long and q_1_long for broadcasting
-        p_1_long = p_1_long.unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, 1024]
-        q_1_long = q_1_long.unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, 1024]
+    #    # Reshape and expand p_1_long and q_1_long for broadcasting
+    #     p_1_long = p_1_long.unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, 1024]
+    #     q_1_long = q_1_long.unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, 1024]
 
         flattened_transformed_grid = flattened_transformed_grid[..., [1, 0]]
-        mask = (flattened_transformed_grid[..., 0] == p_1_long) & (flattened_transformed_grid[..., 1] == q_1_long)
+       
+        # Convert the last dimension to a single index
+        mod_flattened_transformed_grid = (
+            flattened_transformed_grid[..., 0] * height + flattened_transformed_grid[..., 1]
+        )
 
-        # Get the indices of matching locations
-        indices = mask.nonzero(as_tuple=True)
-
-        # Flatten the output for easier indexing
         output_flat = output.reshape(batch_size, max_cav, channels, height * width)
 
-        selected_output_values[indices[0], indices[1], :, indices[2]] = output_flat[indices[0], indices[1], :, indices[2]]
+        # # Iterate over each cav_id and selected index
+        # for cav_id in range(max_cav):
+        #     for idx, value in enumerate(selected_indices):
+        #         # Create mask for the current selected index
+        #         mask = mod_flattened_transformed_grid[:, cav_id, :] == value
 
+        #         # Get indices of matching locations
+        #         matching_indices = np.where(mask.cpu().numpy()) # np.where(mask)
+
+        #         # Use advanced indexing to copy values
+        #         selected_output_values[matching_indices[0], cav_id, :, idx] = output_flat[matching_indices[0], cav_id, :, matching_indices[1]]
+
+        # Iterate over each cav_id and selected index
+        # for cav_id in range(max_cav):
+        #     for idx, value in enumerate(selected_indices):
+        #         # Create mask for the current selected index
+        #         mask = mod_flattened_transformed_grid[:, cav_id, :] == value
+
+        #         # Get indices of matching locations using PyTorch
+        #         matching_indices = torch.nonzero(mask, as_tuple=True)
+
+        #         # Use advanced indexing to copy values
+        #         selected_output_values[matching_indices[0], cav_id, :, idx] = output_flat[matching_indices[0], cav_id, :, matching_indices[1]]
+
+        
+        for idx, value in enumerate(selected_indices):
+                # Create mask for the current selected index
+                mask = mod_flattened_transformed_grid == value
+
+                # Get indices of matching locations using PyTorch
+                matching_indices = torch.nonzero(mask, as_tuple=True)
+
+                #   Convert indices to long type
+                matching_indices = tuple(index.long() for index in matching_indices)
+
+                # Create a tensor of idx repeated to match the size of matching_indices[0]
+                idx_tensor = torch.tensor([idx]).repeat(matching_indices[0].size(0)).long().to(matching_indices[0].device)
+
+                # Use advanced indexing to copy values
+                selected_output_values[matching_indices[0], matching_indices[1], :, idx_tensor] = output_flat[matching_indices[0], matching_indices[1], :, matching_indices[2]]
+      
         #shilpa stack cav data at ego
         # Step 1: Extract cav_id=0 data
         # print("device of orig_bev_data_from_all_cav=", orig_bev_data_from_all_cav.device)
@@ -407,29 +413,29 @@ class CorpBEVT(nn.Module):
         
         # perform feature spatial transformation,  B, max_cav, H, W, C
         #shilpa
-        # x = self.sttf(x, transformation_matrix)
-        dummy, _ = regroup(dummy, record_len, self.max_cav)
-        dummy, _ = self.sttf(dummy, transformation_matrix)
-        dummy = rearrange(dummy, 'b l h w c -> b l c h w')
+        # # x = self.sttf(x, transformation_matrix)
+        # dummy, _ = regroup(dummy, record_len, self.max_cav)
+        # dummy, _ = self.sttf(dummy, transformation_matrix)
+        # dummy = rearrange(dummy, 'b l h w c -> b l c h w')
 
         x = rearrange(x, 'b l c h w -> b l h w c')
-        # com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
-        #     3) if not self.use_roi_mask \
-        #     else get_roi_and_cav_mask(x.shape,
-        #                               mask,
-        #                               transformation_matrix,
-        #                               self.discrete_ratio,
-        #                               self.downsample_rate)
-        
-        
-        transformation_matrix_identity = torch.eye(4, device=transformation_matrix.device).repeat(1, transformation_matrix.shape[1], 1, 1)
         com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
             3) if not self.use_roi_mask \
             else get_roi_and_cav_mask(x.shape,
                                       mask,
-                                      transformation_matrix_identity,
+                                      transformation_matrix,
                                       self.discrete_ratio,
                                       self.downsample_rate)
+        
+        
+        # transformation_matrix_identity = torch.eye(4, device=transformation_matrix.device).repeat(1, transformation_matrix.shape[1], 1, 1)
+        # com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
+        #     3) if not self.use_roi_mask \
+        #     else get_roi_and_cav_mask(x.shape,
+        #                               mask,
+        #                               transformation_matrix_identity,
+        #                               self.discrete_ratio,
+        #                               self.downsample_rate)
 
         # # fuse all agents together to get a single bev map, b h w c
         x = rearrange(x, 'b l h w c -> b l c h w')
