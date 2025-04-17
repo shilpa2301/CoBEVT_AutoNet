@@ -17,8 +17,8 @@
             // "program": "${workspaceFolder}/Trajectory_OPV2V/extract_pickle.py",
             "args": [
                 //cobevt
-                "--hypes_yaml", "${workspaceFolder}/opv2v/opencood/checkpoints_test/config.yaml",
-                "--model_dir", "${workspaceFolder}/opv2v/opencood/checkpoints_test/"
+                "--hypes_yaml", "${workspaceFolder}/opv2v/opencood/checkpoints_suborig3d/config.yaml",
+                "--model_dir", "${workspaceFolder}/opv2v/opencood/checkpoints_suborig3d/"
                 //bevuncertainty inference
                 // "--model_dir", "${workspaceFolder}/MultiModalityPerception/opv2v/opencood/logs/bevfusion_lidar_only_seg"
                 // "--hypes_yaml", "${workspaceFolder}/opv2v/opencood/logs/camera_detection_swint/config.yaml",

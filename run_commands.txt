@@ -66,3 +66,4 @@ sbatch -p cisl --gres=gpu:1 --mem=10g --time=7-0:00:00 run_job.sh
 sbatch -p batch -t 7-00:00:00 run_job.sh
 
 sbatch -p cisl --gres=gpu:2 --mem=20g --time=7-0:00:00 run_job.sh
+source cisl_jobs.sh
