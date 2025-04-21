@@ -27,6 +27,11 @@ test 1 GPU:
 python opencood/tools/inference_camera.py --model_dir opencood/checkpoints_100
 python opencood/tools/inference_camera.py --model_dir opencood/checkpoints_orig
 
+python opencood/tools/inference_camera.py --model_dir opencood/checkpoints_test --model_type static
+
+python opencood/tools/merge_dynamic_static.py --dynamic_path opencood/checkpoints_test/dynamic_model --static_path opencood/checkpoints_test/static_model --output_path opencood/checkpoints_test/merge_results
+
+
 Installation
 
 # Clone repo

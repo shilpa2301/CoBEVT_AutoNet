@@ -1,9 +1,11 @@
 name: fax # only used for demonstration data api
-root_dir: '/data/HangQiu/data/OPV2V/train'
-validate_dir: '/data/HangQiu/data/OPV2V/validate'
+# root_dir: '/data/HangQiu/data/OPV2V/train'
+# validate_dir: '/data/HangQiu/data/OPV2V/validate'
 
 # root_dir: '/data/HangQiu/proj/autonet-RL/sub_OPV2V/train'
 # validate_dir: '/data/HangQiu/proj/autonet-RL/sub_OPV2V/validate_sub'
+root_dir: '/home/shilpa/autoRL/datasets/sub_OPV2V/train'
+validate_dir: '/home/shilpa/autoRL/datasets/sub_OPV2V/validate_sub'
 
 
 train_params:
@@ -49,7 +51,7 @@ postprocess:
 model:
   core_method: corpbevt
   args:
-    target: &target 'dynamic' # dynamic, static or both
+    target: &target 'static' # dynamic, static or both
     max_cav: *max_cav
     encoder:
       num_layers: 34
@@ -114,16 +116,31 @@ model:
 
 
     seg_head_dim: 32
-    output_class: 2
+    #dynamic
+    # output_class: 2
+    #static
+    output_class: 3
 
+#dynamic
+# loss:
+#   core_method: vanilla_seg_loss
+#   args:
+#     target: *target
+#     d_weights: 75.0
+#     s_weights: 15.0
+#     d_coe: 2.0
+#     s_coe: 0.0
+
+#static
 loss:
   core_method: vanilla_seg_loss
   args:
     target: *target
     d_weights: 75.0
-    s_weights: 15.0
+    s_weights: 2.0
+    l_weights: 4.0
     d_coe: 2.0
-    s_coe: 0.0
+    s_coe: 1.0
 
 optimizer:
   core_method: AdamW
