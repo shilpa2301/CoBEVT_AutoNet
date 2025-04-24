@@ -274,8 +274,9 @@ class BaseDataset(Dataset):
                                                              timestamp_key_delay,
                                                              cur_ego_pose_flag)
             # todoL temporally disable pcd loading
-            # data[cav_id]['lidar_np'] = \
-            #     pcd_utils.pcd_to_np(cav_content[timestamp_key_delay]['lidar'])
+            #shilpa lidar
+            data[cav_id]['lidar_np'] = \
+                pcd_utils.pcd_to_np(cav_content[timestamp_key_delay]['lidar'])
             data[cav_id]['camera_np'] = \
                 load_rgb_from_files(
                     cav_content[timestamp_key_delay]['cameras'])

@@ -1,15 +1,12 @@
 from opencood.data_utils.post_processor.base_postprocessor import BasePostprocessor
 from opencood.data_utils.post_processor.lidar_bev_postprocessor import LidarBevPostprocessor
 from opencood.data_utils.post_processor.camera_bev_postprocessor import CameraBevPostprocessor
-#shilpa lidar
-from opencood.data_utils.post_processor.voxel_postprocessor import VoxelPostprocessor
+
 
 __all__ = {
     'BevPostprocessor': LidarBevPostprocessor,
     'BasePostprocessor': BasePostprocessor,
     'CameraBevPostprocessor': CameraBevPostprocessor,
-    #shilpa lidar
-    'VoxelPostprocessor': VoxelPostprocessor,
 }
 
 

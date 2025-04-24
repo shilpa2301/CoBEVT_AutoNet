@@ -29,7 +29,7 @@ python opencood/tools/inference_camera.py --model_dir opencood/checkpoints_orig
 
 python opencood/tools/inference_camera.py --model_dir opencood/checkpoints_test --model_type static
 
-python opencood/tools/merge_dynamic_static.py --dynamic_path opencood/checkpoints_test/dynamic_model --static_path opencood/checkpoints_test/static_model --output_path opencood/checkpoints_test/merge_results
+python opencood/tools/merge_dynamic_static.py --dynamic_path opencood/checkpoints_combined_orig/dynamic --static_path opencood/checkpoints_combined_orig/static --output_path opencood/checkpoints_combined_orig/merged_results
 
 
 Installation
@@ -67,8 +67,10 @@ tensorboard --logdir=opencood/checkpoints/
 ssh -L 6006:localhost:6006 smukh039@dune1
 
 batch job:
-sbatch -p cisl --gres=gpu:1 --mem=10g --time=7-0:00:00 run_job.sh
+sbatch -p cisl --gres=gpu:1 --mem=25g --time=7-0:00:00 run_job.sh
 sbatch -p batch -t 7-00:00:00 run_job.sh
 
 sbatch -p cisl --gres=gpu:2 --mem=20g --time=7-0:00:00 run_job.sh
 source cisl_jobs.sh
+
+srun -p cisl --gres=gpu:1 --mem=12g --time=24:00:00 --pty bash

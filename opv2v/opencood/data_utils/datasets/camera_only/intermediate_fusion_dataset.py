@@ -56,6 +56,10 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
         gt_static = []
         # (1, h, w)
         gt_dynamic = []
+        #shilpa lidar
+        # lidar_data = OrderedDict()
+        # lidar shape is dynamic
+        lidar_data = {}
 
         # loop over all CAVs to process information
         #shilpa ego index
@@ -77,6 +81,8 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
                 selected_cav_processed['camera']['extrinsic'])
             transformation_matrix.append(
                 selected_cav_processed['transformation_matrix'])
+            #shilpa lidar
+            lidar_data.update({cav_id: selected_cav_processed['lidar']['data']})
             #shilpa ego index
             ego_index_in_processed_matrix +=1
 
@@ -110,6 +116,8 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
             'ego_mat_index': ego_mat_index,
             'transformation_matrix': transformation_matrix,
             'pairwise_t_matrix': pairwise_t_matrix,
+            #shilpa lidar
+            'lidar_data': lidar_data,
             'camera_data': camera_data,
             'camera_intrinsic': camera_intrinsic,
             'camera_extrinsic': camera2ego,
@@ -237,6 +245,12 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
 
         selected_cav_processed.update({'camera': camera_dict})
 
+        #shilpa lidar
+        lidar_dict = {
+            'data': np.stack(selected_cav_base['lidar_np']),
+        }
+        selected_cav_processed.update({'lidar': lidar_dict})
+
         return selected_cav_processed
 
     def collate_batch(self, batch):
@@ -269,6 +283,13 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
         pairwise_t_matrix_all_batch = []
         # used to save each scenario's agent number
         record_len = []
+
+        #shilpa lidar
+        # lidar shape is dynamic
+        lidar_data = []
+        # extrinsic lidar to camera
+        lidar_to_camera = []
+
         #shilpa ego index
         ego_mat_index = []
 
@@ -301,6 +322,29 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
             # pairwise matrix
             pairwise_t_matrix_all_batch.append(ego_dict['pairwise_t_matrix'])
 
+            #shilpa lidar
+            lidar_data.append(ego_dict['lidar_data'])
+
+            # compute the lidar to camera matrix
+            # for frame in camera_extrinsic:
+            #     for agent in frame:
+            #         for camera in agent:
+            #             lidar2cam_r = np.linalg.inv(camera[:3, :3])
+            #             lidar2cam_t = camera[:3, 3] @ lidar2cam_r.T
+            #             lidar2cam_rt = np.eye(4)
+            #             lidar2cam_rt[:3, :3] = lidar2cam_r.T
+            #             lidar2cam_rt[3, :3] = -lidar2cam_t
+            #
+            # for frame in camera_intrinsic:
+            #     for agent in frame:
+            #         for camera in agent:
+            #             intrinsic = camera
+            #             viewpad = np.eye(4)
+            #             viewpad[:intrinsic.shape[0], :intrinsic.shape[1]] = intrinsic
+            #             lidar2img_rt = (viewpad @ lidar2cam_rt.T)
+            #             lidar_to_camera.append(lidar2img_rt)
+            lidar_to_camera.append(self.get_lidar2cam(camera_extrinsic, camera_intrinsic))  # stacks it by batches
+
         # (B*L, 1, M, H, W, C)
         cam_rgb_all_batch = torch.from_numpy(
             np.concatenate(cam_rgb_all_batch, axis=0)).unsqueeze(1).float()
@@ -324,11 +368,17 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
             torch.from_numpy(np.stack(transformation_matrix_all_batch)).float()
         pairwise_t_matrix_all_batch = \
             torch.from_numpy(np.stack(pairwise_t_matrix_all_batch)).float()
+        
+        #shilpa lidar
+        lidar_to_camera = torch.from_numpy(np.concatenate(lidar_to_camera, axis=1)).float()
 
         # convert numpy arrays to torch tensor
         output_dict['ego'].update({
             #shilpa ego index
             'ego_mat_index': ego_mat_index,
+            #shilpa lidar
+            'lidar_data': lidar_data,
+            'lidar_to_camera': lidar_to_camera,
             'inputs': cam_rgb_all_batch,
             'extrinsic': cam_to_ego_all_batch,
             'intrinsic': cam_intrinsic_all_batch,
@@ -346,3 +396,45 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
                                                        output_dict)
 
         return output_dict
+
+    #shilpa lidar
+    def get_lidar2cam(self, camera_extrinsic, camera_intrinsic):
+        lidar_to_camera = []
+
+        # Iterate over frames
+        for frame_idx, (frame_extrinsics, frame_intrinsics) in enumerate(zip(camera_extrinsic, camera_intrinsic)):
+            frame_lidar_to_camera = []
+
+            # Iterate over agents
+            for agent_idx, (agent_extrinsics, agent_intrinsics) in enumerate(zip(frame_extrinsics, frame_intrinsics)):
+                agent_lidar_to_camera = []
+
+                # Iterate over cameras
+                for camera_idx, (camera_extrinsic, camera_intrinsic) in enumerate(
+                        zip(agent_extrinsics, agent_intrinsics)):
+                    # Extract rotation (R) and translation (t)
+                    R = camera_extrinsic[:3, :3]  # 3x3 rotation matrix
+                    t = camera_extrinsic[:3, 3:]  # 3x1 translation vector
+
+                    # Compute the inverse extrinsic matrix (LiDAR to camera)
+                    R_inv = R.T  # Transpose of the rotation matrix
+                    t_inv = -np.dot(R_inv, t)  # Inverse translation
+
+                    # Construct the LiDAR-to-camera extrinsic matrix
+                    extrinsic_lidar_to_cam = np.eye(4)
+                    extrinsic_lidar_to_cam[:3, :3] = R_inv
+                    extrinsic_lidar_to_cam[:3, 3] = t_inv[:, 0]
+
+                    # Append the transformation matrix for this camera
+                    agent_lidar_to_camera.append(extrinsic_lidar_to_cam)
+
+                # Append the matrices for this agent
+                frame_lidar_to_camera.append(agent_lidar_to_camera)
+
+            # Append the matrices for this frame
+            lidar_to_camera.append(frame_lidar_to_camera)
+
+        # Convert list to a NumPy array or PyTorch tensor with the correct shape
+        lidar_to_camera = np.array(lidar_to_camera)
+
+        return lidar_to_camera
