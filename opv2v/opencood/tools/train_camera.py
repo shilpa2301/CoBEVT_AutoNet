@@ -15,6 +15,8 @@ from opencood.data_utils.datasets import build_dataset
 from opencood.utils.seg_utils import cal_iou_training
 
 
+
+
 def train_parser():
     parser = argparse.ArgumentParser(description="synthetic data generation")
     parser.add_argument("--hypes_yaml", type=str, required=True,

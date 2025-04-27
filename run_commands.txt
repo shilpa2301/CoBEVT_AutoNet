@@ -74,3 +74,24 @@ sbatch -p cisl --gres=gpu:2 --mem=20g --time=7-0:00:00 run_job.sh
 source cisl_jobs.sh
 
 srun -p cisl --gres=gpu:1 --mem=12g --time=24:00:00 --pty bash
+
+Apptainer:
+apptainer exec --overlay overlay3.img --nv \
+  --bind /data/HangQiu/data/OPV2V/train:/data/HangQiu/data/OPV2V/train \
+  --bind /data/HangQiu/data/OPV2V/validate:/data/HangQiu/data/OPV2V/validate \
+  --bind /data/HangQiu/data/OPV2V/test:/data/HangQiu/data/OPV2V/test \
+  mmp_latest.sif bash << 'EOF'
+
+ 
+ apptainer exec --overlay overlay.img --nv --bind /data/HangQiu/data/OPV2V/train:/data/HangQiu/data/OPV2V/train --bind /data/HangQiu/data/OPV2V/validate:/data/HangQiu/data/OPV2V/validate --bind /data/HangQiu/data/OPV2V/test:/data/HangQiu/data/OPV2V/test mmp_latest.sif bash << 'EOF'
+
+conda activate cloned_env_name
+python3 mmdetection3d/projects/BEVFusion/setup.py develop
+pwd
+cd opv2v/
+python3 opencood/utils/setup.py build_ext --inplace
+
+python3 setup.py develop
+cd ../opv2v
+python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_test/config.yaml
+EOF

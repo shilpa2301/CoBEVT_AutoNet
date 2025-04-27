@@ -9,7 +9,7 @@ from einops import rearrange
 from opencood.models.sub_modules.fax_modules import FAXModule
 from opencood.models.backbones.resnet_ms import *
 from opencood.models.sub_modules.naive_decoder import NaiveDecoder
-from opv2v.opencood.models.heads.bev_seg_head import BevSegHead
+from opencood.models.heads.bev_seg_head import BevSegHead
 from opencood.models.sub_modules.naive_compress import NaiveCompressor
 from opencood.models.fusion_modules.swap_fusion_modules import \
     SwapFusionEncoder
@@ -20,7 +20,10 @@ from opencood.models.sub_modules.torch_transformation_utils import \
 from opencood.models.pointpillars.pillars_feature_net import *
 from opencood.models.fusion_modality.modality_fuser import *
 
-from mmdetection3d.projects.BEVFusion.demo.init_encoder import init_encoder
+#shilpa apptainer
+import sys
+sys.path.append('/home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet')
+from mmdetection3d.projects.BEVFusion.demo.init_encoder import build_encoder #init_encoder
 
 
 
@@ -95,7 +98,7 @@ class CorpBEVTLidar(nn.Module):
         # self.pillar_encoder = PillarEncoder(voxel_size=voxel_size, point_cloud_range=point_cloud_range, in_channel=in_channel, out_channel=out_channel)
         # self.lidar_encoder = LidarEncoder()
 
-        self.lidar_encoder = init_encoder()
+        self.lidar_encoder = build_encoder() #init_encoder()
         print(self.lidar_encoder)
 
         # cvm params

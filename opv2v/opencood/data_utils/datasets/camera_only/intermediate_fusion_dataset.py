@@ -343,7 +343,7 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
             #             viewpad[:intrinsic.shape[0], :intrinsic.shape[1]] = intrinsic
             #             lidar2img_rt = (viewpad @ lidar2cam_rt.T)
             #             lidar_to_camera.append(lidar2img_rt)
-            lidar_to_camera.append(self.get_lidar2cam(camera_extrinsic, camera_intrinsic))  # stacks it by batches
+            # lidar_to_camera.append(self.get_lidar2cam(camera_extrinsic, camera_intrinsic))  # stacks it by batches
 
         # (B*L, 1, M, H, W, C)
         cam_rgb_all_batch = torch.from_numpy(
@@ -370,7 +370,7 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
             torch.from_numpy(np.stack(pairwise_t_matrix_all_batch)).float()
         
         #shilpa lidar
-        lidar_to_camera = torch.from_numpy(np.concatenate(lidar_to_camera, axis=1)).float()
+        # lidar_to_camera = torch.from_numpy(np.concatenate(lidar_to_camera, axis=1)).float()
 
         # convert numpy arrays to torch tensor
         output_dict['ego'].update({
@@ -378,7 +378,7 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
             'ego_mat_index': ego_mat_index,
             #shilpa lidar
             'lidar_data': lidar_data,
-            'lidar_to_camera': lidar_to_camera,
+            # 'lidar_to_camera': lidar_to_camera,
             'inputs': cam_rgb_all_batch,
             'extrinsic': cam_to_ego_all_batch,
             'intrinsic': cam_intrinsic_all_batch,

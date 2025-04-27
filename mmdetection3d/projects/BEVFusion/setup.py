@@ -47,7 +47,8 @@ if __name__ == '__main__':
         ext_modules=[
             make_cuda_ext(
                 name='bev_pool_ext',
-                module='projects.BEVFusion.bevfusion.ops.bev_pool',
+                # module='projects.BEVFusion.bevfusion.ops.bev_pool',
+                module='bevfusion.ops.bev_pool',
                 sources=[
                     'src/bev_pool.cpp',
                     'src/bev_pool_cuda.cu',
@@ -55,7 +56,8 @@ if __name__ == '__main__':
             ),
             make_cuda_ext(
                 name='voxel_layer',
-                module='projects.BEVFusion.bevfusion.ops.voxel',
+                # module='projects.BEVFusion.bevfusion.ops.voxel',
+                module='bevfusion.ops.voxel',
                 sources=[
                     'src/voxelization.cpp',
                     'src/scatter_points_cpu.cpp',
