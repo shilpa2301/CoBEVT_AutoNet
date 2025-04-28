@@ -83,6 +83,7 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
                 selected_cav_processed['transformation_matrix'])
             #shilpa lidar
             lidar_data.update({cav_id: selected_cav_processed['lidar']['data']})
+            # lidar_data.append(selected_cav_processed['lidar']['data'])
             #shilpa ego index
             ego_index_in_processed_matrix +=1
 
@@ -99,6 +100,8 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
         camera_data = np.stack(camera_data)
         camera_intrinsic = np.stack(camera_intrinsic)
         camera2ego = np.stack(camera2ego)
+        #shilpa lidar
+        # lidar_data = np.stack(lidar_data)
 
         gt_dynamic = np.stack(gt_dynamic)
         gt_static = np.stack(gt_static)
@@ -323,7 +326,10 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
             pairwise_t_matrix_all_batch.append(ego_dict['pairwise_t_matrix'])
 
             #shilpa lidar
-            lidar_data.append(ego_dict['lidar_data'])
+            data_dict = ego_dict['lidar_data']
+            tensor_dict = {key: torch.tensor(value) for key, value in data_dict.items()}
+            lidar_data.append(tensor_dict)
+            # lidar_data.append(ego_dict['lidar_data'])
 
             # compute the lidar to camera matrix
             # for frame in camera_extrinsic:
@@ -356,6 +362,7 @@ class CamIntermediateFusionDataset(base_camera_dataset.BaseCameraDataset):
         record_len = torch.from_numpy(np.array(record_len, dtype=int))
         #shilpa ego index
         ego_mat_index = torch.from_numpy(np.array(ego_mat_index, dtype=int))
+
 
         # (B, 1, H, W)
         gt_static_all_batch = \

@@ -22,7 +22,7 @@ from opencood.models.fusion_modality.modality_fuser import *
 
 #shilpa apptainer
 import sys
-sys.path.append('/home/csgrad/smukh039/AutoNetworkingRL/CoBEVT_AutoNet')
+sys.path.append('/home/shilpa/autoRL/CoBEVT_AutoNet')
 from mmdetection3d.projects.BEVFusion.demo.init_encoder import build_encoder #init_encoder
 
 
@@ -83,19 +83,19 @@ class CorpBEVTLidar(nn.Module):
 
         # # default parameters make sure to include into CorpBEVT config later
         # point_cloud_range =[0, -39.68, -3, 69.12, 39.68, 1]
-        # voxel_size=[0.16, 0.16, 4]
+        voxel_size=[0.16, 0.16, 4]
         #
-        # # point_cloud_range = [0, -40.96/2, -3, 40.96, 40.96/2, 1]
+        point_cloud_range = [0, -40.96/2, -3, 40.96, 40.96/2, 1]
         # # voxel_size = [0.32*2, 0.32*2, 4]
         #
-        # max_num_points=32
-        # max_voxels=(16000, 40000)
-        # in_channel = 9
-        # out_channel = 64
+        max_num_points=32
+        max_voxels=(16000, 40000)
+        in_channel = 9
+        out_channel = 64
         #
         # # Point Pillar layer and encoder
-        # self.pillar_layer = PillarLayer(voxel_size=voxel_size, point_cloud_range=point_cloud_range,max_num_points=max_num_points, max_voxels=max_voxels)
-        # self.pillar_encoder = PillarEncoder(voxel_size=voxel_size, point_cloud_range=point_cloud_range, in_channel=in_channel, out_channel=out_channel)
+        self.pillar_layer = PillarLayer(voxel_size=voxel_size, point_cloud_range=point_cloud_range,max_num_points=max_num_points, max_voxels=max_voxels)
+        self.pillar_encoder = PillarEncoder(voxel_size=voxel_size, point_cloud_range=point_cloud_range, in_channel=in_channel, out_channel=out_channel)
         # self.lidar_encoder = LidarEncoder()
 
         self.lidar_encoder = build_encoder() #init_encoder()
@@ -156,7 +156,9 @@ class CorpBEVTLidar(nn.Module):
         # x = self.sttf(x, transformation_matrix)
 
         lidar_features = []
-        for agent, data in lidar_data.items():
+        #shilpa lidar
+        # for agent, data in lidar_data.items():
+        for data in lidar_data:
             pillars, coors_batch, npoints_per_pillar = self.pillar_layer(batched_pts=[data])
             lidar_features_single = self.pillar_encoder(pillars, coors_batch, npoints_per_pillar)
             lidar_features.append(lidar_features_single)

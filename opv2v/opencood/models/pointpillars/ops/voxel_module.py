@@ -2,7 +2,9 @@
 
 import torch
 import torch.nn as nn
-# from .voxel_op import hard_voxelize
+from .voxel_op import hard_voxelize
+#shilpa lidar
+torch.cuda.empty_cache()
 
 
 class _Voxelization(torch.autograd.Function):
@@ -47,11 +49,14 @@ class _Voxelization(torch.autograd.Function):
         """
         # print(points)
         voxels = points.new_zeros(
-            size=(max_voxels, max_points, points.size(1)))
+            #shilpa lidar
+            # size=(max_voxels, max_points, points.size(1)))
+            size=(max_voxels, max_points, points.shape[1]))
         # print("voxels ", voxels)
         coors = points.new_zeros(size=(max_voxels, 3), dtype=torch.int)
         num_points_per_voxel = points.new_zeros(
             size=(max_voxels, ), dtype=torch.int)
+        #shilpa lidar
         voxel_num = hard_voxelize(points, voxels, coors,
                                     num_points_per_voxel, voxel_size,
                                     coors_range, max_points, max_voxels, 3,
@@ -122,7 +127,7 @@ class Voxelization(nn.Module):
             max_voxels = self.max_voxels[0]
         else:
             max_voxels = self.max_voxels[1]
-
+        #shilpa lidar
         return _Voxelization.apply(input, self.voxel_size, self.point_cloud_range,
                                    self.max_num_points, max_voxels,
                                    self.deterministic)

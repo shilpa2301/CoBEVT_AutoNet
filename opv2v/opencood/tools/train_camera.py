@@ -154,6 +154,10 @@ def main():
             model.zero_grad()
             optimizer.zero_grad()
 
+            #shilpa
+            a =batch_data['ego']['lidar_data']
+            batch_data['ego']['lidar_data'] = [value for item in a for value in item.values()]
+
             batch_data = train_utils.to_device(batch_data, device)
 
             if not opt.half:
