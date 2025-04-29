@@ -18,6 +18,9 @@ from opencood.models.sub_modules.torch_transformation_utils import \
     get_transformation_matrix, warp_affine, get_roi_and_cav_mask, \
     get_discretized_transformation_matrix
 
+#shilpa bev dim match
+import torch.nn.functional as F
+
 
 class STTF(nn.Module):
     def __init__(self, args):
@@ -153,5 +156,6 @@ class CorpBEVT(nn.Module):
         x = rearrange(x, 'b l c h w -> (b l) c h w')
         b = x.shape[0]
         output_dict = self.seg_head(x, b, 1)
+
 
         return output_dict

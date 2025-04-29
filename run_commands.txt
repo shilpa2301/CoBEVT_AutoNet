@@ -7,6 +7,8 @@ python opencood/tools/train_camera.py --hypes_yaml ${CONFIG_FILE} [--model_dir  
 
 python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_orig/config.yaml --model_dir  opencood/checkpoints_orig
 CUDA_LAUNCH_BLOCKING=1 python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_test/config.yaml --model_dir  opencood/checkpoints_test
+python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_test/camera_config.yaml --model_dir  opencood/checkpoints_test
+
 
 train multiple GPUs:
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4  --use_env python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_orig/config.yaml --model_dir  opencood/checkpoints_orig
@@ -86,6 +88,7 @@ apptainer exec --overlay overlay3.img --nv \
  apptainer exec --overlay overlay.img --nv --bind /data/HangQiu/data/OPV2V/train:/data/HangQiu/data/OPV2V/train --bind /data/HangQiu/data/OPV2V/validate:/data/HangQiu/data/OPV2V/validate --bind /data/HangQiu/data/OPV2V/test:/data/HangQiu/data/OPV2V/test mmp_latest.sif bash << 'EOF'
 
 conda activate cloned_env_name
+pwd
 python3 mmdetection3d/projects/BEVFusion/setup.py develop
 pwd
 cd opv2v/

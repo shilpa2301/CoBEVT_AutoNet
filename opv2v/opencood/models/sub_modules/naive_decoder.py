@@ -86,10 +86,10 @@ class NaiveDecoder(nn.Module):
             x = self.convs[("norm", i, 1)](x)
             x = self.convs[("relu", i, 1)](x)
 
-            #shilpa match bev to image size
+            #shilpa bev dim match to image size
             # Additional upsampling step
-            if i == 0:  # Add an extra upsampling step at the last layer
-                x = self.upsample(x)
+            # if i == 0:  # Add an extra upsampling step at the last layer
+            #     x = self.upsample(x)
 
         x = rearrange(x, '(b l) c h w -> b l c h w',
                       b=b, l=l)

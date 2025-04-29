@@ -18,6 +18,8 @@ from opencood.models.sub_modules.torch_transformation_utils import \
     get_transformation_matrix, warp_affine, get_roi_and_cav_mask, \
     get_discretized_transformation_matrix
 
+#shilpa bev dim match
+import torch.nn.functional as F
 
 class STTF(nn.Module):
     def __init__(self, args):
@@ -228,5 +230,23 @@ class CorpBEVT(nn.Module):
         x = rearrange(x, 'b l c h w -> (b l) c h w')
         b = x.shape[0]
         output_dict = self.seg_head(x, b, 1)
+
+        # #shilpa bev dim match
+        # curr_available_bev = output_dict
+        
+        # # Here, selecting the first channel (index 0)
+        # output = output_dict['static_seg'].squeeze(0).squeeze(0)
+
+        # # If you need to resize one specific channel, select it like this:
+        # output_channel = output[0]  # Select the first channel
+
+        # # Ensure the tensor is 4D: [N, C, H, W]
+        # output_channel = output_channel.unsqueeze(0).unsqueeze(0)
+
+        # # Resize to [256, 256]
+        # output_dict['static_seg'] = F.interpolate(output_channel, size=(256, 256), mode='nearest').squeeze(0)
+
+        # # Now output_resized should have the shape [256, 256]
+        # # print(output_dict.shape)  # Output: torch.Size([256, 256])
 
         return output_dict
