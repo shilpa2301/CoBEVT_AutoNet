@@ -19,7 +19,11 @@ from opencood.models.sub_modules.torch_transformation_utils import \
     get_discretized_transformation_matrix
 
 #shilpa bev dim match
-import torch.nn.functional as F
+# import torch.nn.functional as F
+
+#shilpa entropy
+from scipy.stats import entropy
+
 
 class STTF(nn.Module):
     def __init__(self, args):
@@ -105,6 +109,9 @@ class CorpBEVT(nn.Module):
         self.seg_head = BevSegHead(self.target,
                                    config['seg_head_dim'],
                                    config['output_class'])
+        
+        #shilpa entropy
+        self.prev_avg_entropy = None
 
     def forward(self, batch_dict):
         x = batch_dict['inputs']
@@ -124,7 +131,10 @@ class CorpBEVT(nn.Module):
         # x = x.squeeze(1)
 
         #shilpa new fax - ca + egosend + cav reconstruction phase 1
-        _, orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, transformation_matrix)
+        if self.prev_avg_entropy is not None:
+            _, orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, self.prev_avg_entropy)
+        else:
+            _, orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
         x = orig_bev_data_from_all_cav
 
         x, _ = regroup(x, record_len, self.max_cav)
@@ -230,6 +240,27 @@ class CorpBEVT(nn.Module):
         x = rearrange(x, 'b l c h w -> (b l) c h w')
         b = x.shape[0]
         output_dict = self.seg_head(x, b, 1)
+
+        #shilpa entropy
+        # Normalize the tensor to get probabilities
+        if self.target == 'static':
+            target_tensor = output_dict['static_seg'].detach().cpu().numpy()
+        else:
+            target_tensor = output_dict['dynamic_seg'].detach().cpu().numpy()
+        probabilities = target_tensor / target_tensor.sum(axis=2, keepdims=True)
+        # Add a small epsilon to avoid log(0)
+        epsilon = 1e-10
+        probabilities += epsilon
+        # Calculate entropy for each pixel using vectorized operations
+        entropy_map = entropy(probabilities, axis=2, base=2)
+        # Reshape and calculate average entropy over 32x32 buckets
+        bucket_size = 32
+        entropy_map_reshaped = entropy_map.reshape(256//bucket_size, bucket_size, 256//bucket_size, bucket_size)
+        avg_entropy = entropy_map_reshaped.mean(axis=(0, 2))
+        # Reshape to desired output shape
+        self.prev_avg_entropy = torch.tensor(avg_entropy.reshape(1, 1, 1, 32, 32))
+
+
 
         # #shilpa bev dim match
         # curr_available_bev = output_dict

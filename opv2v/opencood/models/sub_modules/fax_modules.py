@@ -7,6 +7,9 @@ from einops import rearrange, repeat, reduce
 from torchvision.models.resnet import Bottleneck
 from typing import List
 
+#shilpa entropy
+import numpy as np
+
 
 ResNetBottleNeck = lambda c: Bottleneck(c, c // 4)
 
@@ -489,6 +492,19 @@ class FAXModule(nn.Module):
                         nn.BatchNorm2d(dim[i+1])
                         )))
 
+            #shilpa bev upscale
+            # if i < len(middle) - 1:
+            #     # Adjust downsample layers to avoid division by 4
+            #     downsample_layers.append(nn.Sequential(
+            #         nn.Conv2d(dim[i], dim[i], kernel_size=3, stride=1, padding=1, bias=False),
+            #         nn.PixelUnshuffle(2),
+            #         nn.Conv2d(dim[i+1], dim[i+1], 3, padding=1, bias=False),
+            #         nn.BatchNorm2d(dim[i+1]),
+            #         nn.ReLU(inplace=True),
+            #         nn.Conv2d(dim[i+1], dim[i+1], 1, padding=0, bias=False),
+            #         nn.BatchNorm2d(dim[i+1])
+            #     ))
+
         self.bev_embedding = BEVEmbedding(dim[0], **config['bev_embedding'])
         self.cross_views = nn.ModuleList(cross_views)
         self.layers = nn.ModuleList(layers)
@@ -525,7 +541,7 @@ class FAXModule(nn.Module):
     #     return x
     
     
-    def forward(self, batch, transformation_matrix):
+    def forward(self, batch, prev_avg_entropy=None):
         b, l, n, _, _, _ = batch['inputs'].shape
 
         I_inv = \
@@ -552,16 +568,35 @@ class FAXModule(nn.Module):
         #shilpa select bev points to send to cav
         #assume 30 % data to request
         orig_bev_data_from_all_cav = x
-        percentage_data_to_request=0.5 #1.0
+        
         reshaped_constructed_data_all = torch.zeros_like(x) 
         data_at_index_0 = x[0]  # Shape: (128, 32, 32)
         dim_len,height, width = data_at_index_0.shape  # Extract H and W
         num_spatial_indices = height * width  # Total spatial indices
         flattened_data = data_at_index_0.view(dim_len, -1)  # Shape: (128, height * width)
-        num_random_indices = int(percentage_data_to_request * num_spatial_indices)  # Compute 30% of total indices
-        #shilpa Transmission 1 - this data is transmitted from ego to CAV for request
-        random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
-        selected_data = flattened_data[:, random_indices] 
+
+        # percentage_data_to_request=0.5 #1.0
+        # num_random_indices = int(percentage_data_to_request * num_spatial_indices)  # Compute 30% of total indices
+        # #shilpa Transmission 1 - this data is transmitted from ego to CAV for request
+        # random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
+        # selected_data = flattened_data[:, random_indices] 
+
+        if prev_avg_entropy is not None:
+            percentage_data_to_request= 0.5
+            # Flatten the entropy tensor
+            flattened_entropy = prev_avg_entropy.flatten()
+            # Calculate the number of top 30 percent indices
+            num_top_indices = int(percentage_data_to_request * flattened_entropy.numel())
+            # Get the indices of the top 30 percent entropy values
+            random_indices = torch.tensor(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
+            selected_data = flattened_data[:, random_indices] 
+        else:
+            percentage_data_to_request = 1.0
+            num_random_indices = int(percentage_data_to_request * num_spatial_indices)  # Compute 30% of total indices
+            #shilpa Transmission 1 - this data is transmitted from ego to CAV for request
+            random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
+            selected_data = flattened_data[:, random_indices]
+        
 
         # print("Expected Indices:", torch.arange(num_spatial_indices, device=flattened_data.device))
 
