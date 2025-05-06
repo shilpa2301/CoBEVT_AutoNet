@@ -247,18 +247,35 @@ class CorpBEVT(nn.Module):
             target_tensor = output_dict['static_seg'].detach().cpu().numpy()
         else:
             target_tensor = output_dict['dynamic_seg'].detach().cpu().numpy()
-        probabilities = target_tensor / target_tensor.sum(axis=2, keepdims=True)
+            
+        # probabilities = target_tensor / target_tensor.sum(axis=2, keepdims=True)
+        # # Add a small epsilon to avoid log(0)
+        # epsilon = 1e-10
+        # probabilities += epsilon
+
+        # Convert logits to probabilities using softmax
+        exp_logits = np.exp(target_tensor - np.max(target_tensor, axis=2, keepdims=True))  # Stabilize for numerical safety
+        probabilities = exp_logits / exp_logits.sum(axis=2, keepdims=True)
+
         # Add a small epsilon to avoid log(0)
         epsilon = 1e-10
-        probabilities += epsilon
+        probabilities = np.clip(probabilities, a_min=epsilon, a_max=None)  # Ensure probabilities are valid
+
         # Calculate entropy for each pixel using vectorized operations
         entropy_map = entropy(probabilities, axis=2, base=2)
         # Reshape and calculate average entropy over 32x32 buckets
         bucket_size = 32
         entropy_map_reshaped = entropy_map.reshape(256//bucket_size, bucket_size, 256//bucket_size, bucket_size)
         avg_entropy = entropy_map_reshaped.mean(axis=(0, 2))
+        #shilpa soft entropy
+        # Normalize avg_entropy between 0 and 1
+        min_entropy = avg_entropy.min()
+        max_entropy = avg_entropy.max()
+        normalized_avg_entropy = (avg_entropy - min_entropy) / (max_entropy - min_entropy)
+
         # Reshape to desired output shape
-        self.prev_avg_entropy = torch.tensor(avg_entropy.reshape(1, 1, 1, 32, 32))
+        # self.prev_avg_entropy = torch.tensor(avg_entropy.reshape(1, 1, 1, 32, 32))
+        self.prev_avg_entropy = torch.tensor(normalized_avg_entropy.reshape(1, 1, 1, 32, 32))
 
 
 

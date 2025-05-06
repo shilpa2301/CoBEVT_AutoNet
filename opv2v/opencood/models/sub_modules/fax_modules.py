@@ -589,6 +589,8 @@ class FAXModule(nn.Module):
             num_top_indices = int(percentage_data_to_request * flattened_entropy.numel())
             # Get the indices of the top 30 percent entropy values
             random_indices = torch.tensor(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
+            # random_indices = torch.from_numpy(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
+
             selected_data = flattened_data[:, random_indices] 
         else:
             percentage_data_to_request = 1.0
