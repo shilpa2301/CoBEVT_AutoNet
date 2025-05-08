@@ -59,6 +59,43 @@ class NaiveDecoder(nn.Module):
         """
         return F.interpolate(x, scale_factor=2, mode="nearest")
 
+    # def forward(self, x):
+    #     """
+    #     Upsample to
+
+    #     Parameters
+    #     ----------
+    #     x : torch.tensor
+    #         The bev bottleneck feature, shape: (B, L, C1, H, W)
+
+    #     Returns
+    #     -------
+    #     Output features with (B, L, C2, H, W)
+    #     """
+    #     b, l, c, h, w = x.shape
+    #     x = rearrange(x, 'b l c h w -> (b l) c h w')
+
+    #     for i in range(self.num_layer-1, -1, -1):
+    #         x = self.convs[("upconv", i, 0)](x)
+    #         x = self.convs[("norm", i, 0)](x)
+    #         x = self.convs[("relu", i, 0)](x)
+
+    #         x = self.upsample(x)
+
+    #         x = self.convs[("upconv", i, 1)](x)
+    #         x = self.convs[("norm", i, 1)](x)
+    #         x = self.convs[("relu", i, 1)](x)
+
+    #         #shilpa bev dim match to image size
+    #         # Additional upsampling step
+    #         # if i == 0:  # Add an extra upsampling step at the last layer
+    #         #     x = self.upsample(x)
+
+    #     x = rearrange(x, '(b l) c h w -> b l c h w',
+    #                   b=b, l=l)
+    #     return x
+
+    #shilpa entropy_uplift
     def forward(self, x):
         """
         Upsample to
@@ -73,24 +110,29 @@ class NaiveDecoder(nn.Module):
         Output features with (B, L, C2, H, W)
         """
         b, l, c, h, w = x.shape
+        # If input channels do not match, project to the correct dimension
+        if c != self.input_dim:
+            x = rearrange(x, 'b l c h w -> (b l) c h w')
+            x = nn.Conv2d(c, self.input_dim, kernel_size=1, stride=1, padding=0)(x)
+            x = rearrange(x, '(b l) c h w -> b l c h w', b=b, l=l)
         x = rearrange(x, 'b l c h w -> (b l) c h w')
 
-        for i in range(self.num_layer-1, -1, -1):
-            x = self.convs[("upconv", i, 0)](x)
-            x = self.convs[("norm", i, 0)](x)
-            x = self.convs[("relu", i, 0)](x)
+        # for i in range(self.num_layer-1, -1, -1):
+        #     x = self.convs[("upconv", i, 0)](x)
+        #     x = self.convs[("norm", i, 0)](x)
+        #     x = self.convs[("relu", i, 0)](x)
 
-            x = self.upsample(x)
+        #     x = self.upsample(x)
 
-            x = self.convs[("upconv", i, 1)](x)
-            x = self.convs[("norm", i, 1)](x)
-            x = self.convs[("relu", i, 1)](x)
+        #     x = self.convs[("upconv", i, 1)](x)
+        #     x = self.convs[("norm", i, 1)](x)
+        #     x = self.convs[("relu", i, 1)](x)
 
             #shilpa bev dim match to image size
             # Additional upsampling step
             # if i == 0:  # Add an extra upsampling step at the last layer
             #     x = self.upsample(x)
 
-        x = rearrange(x, '(b l) c h w -> b l c h w',
-                      b=b, l=l)
+        # x = rearrange(x, '(b l) c h w -> b l c h w',
+        #               b=b, l=l)
         return x

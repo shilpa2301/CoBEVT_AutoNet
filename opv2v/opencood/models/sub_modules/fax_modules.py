@@ -511,6 +511,11 @@ class FAXModule(nn.Module):
         self.downsample_layers = nn.ModuleList(downsample_layers)
         self.self_attn = Attention(dim[-1], **config['self_attn'])
 
+        #shilpa entropy_uplift
+        # Add upsampling and projection layers to get desired output shape
+        self.upsample = nn.Upsample(scale_factor=8, mode='bilinear', align_corners=False)  # Upsample to 256x256
+        self.output_proj = nn.Conv2d(dim[-1], 1, kernel_size=1)  # Project to 3 channels
+
     
     # shilpa
     # def forward(self, batch):
@@ -541,7 +546,88 @@ class FAXModule(nn.Module):
     #     return x
     
     
-    def forward(self, batch, prev_avg_entropy=None):
+    # def forward(self, batch, prev_avg_entropy=None):
+    #     b, l, n, _, _, _ = batch['inputs'].shape
+
+    #     I_inv = \
+    #         rearrange(batch['intrinsic'], 'b l m h w -> (b l) m h w').inverse()
+    #     E_inv = rearrange(batch['extrinsic'],
+    #                       'b l m h w -> (b l) m h w')
+    #     features = batch['features']
+
+    #     x = self.bev_embedding.get_prior()              # d H W
+    #     x = repeat(x, '... -> b ...', b=b * l)  # b*l d H W
+
+    #     for i, (cross_view, feature, layer) in \
+    #             enumerate(zip(self.cross_views, features, self.layers)):
+    #         feature = rearrange(feature, 'b l n ... -> (b l) n ...', b=b, n=n)
+
+    #         x = cross_view(i, x, self.bev_embedding, feature, I_inv, E_inv)
+    #         x = layer(x)
+    #         if i < len(features)-1:
+    #             down_sample_block = self.downsample_layers[i]
+    #             x = down_sample_block(x)
+    #     #shilpa transform sa fix
+    #     x = self.self_attn(x)
+
+    #     #shilpa select bev points to send to cav
+    #     #assume 30 % data to request
+    #     orig_bev_data_from_all_cav = x
+        
+    #     reshaped_constructed_data_all = torch.zeros_like(x) 
+    #     data_at_index_0 = x[0]  # Shape: (128, 32, 32)
+    #     dim_len,height, width = data_at_index_0.shape  # Extract H and W
+    #     num_spatial_indices = height * width  # Total spatial indices
+    #     flattened_data = data_at_index_0.view(dim_len, -1)  # Shape: (128, height * width)
+
+    #     # percentage_data_to_request=0.5 #1.0
+    #     # num_random_indices = int(percentage_data_to_request * num_spatial_indices)  # Compute 30% of total indices
+    #     # #shilpa Transmission 1 - this data is transmitted from ego to CAV for request
+    #     # random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
+    #     # selected_data = flattened_data[:, random_indices] 
+
+    #     if prev_avg_entropy is not None:
+    #         percentage_data_to_request= 0.5
+    #         # Flatten the entropy tensor
+    #         flattened_entropy = prev_avg_entropy.flatten()
+    #         # Calculate the number of top 30 percent indices
+    #         num_top_indices = int(percentage_data_to_request * flattened_entropy.numel())
+    #         # Get the indices of the top 30 percent entropy values
+    #         random_indices = torch.tensor(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
+    #         # random_indices = torch.from_numpy(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
+
+    #         selected_data = flattened_data[:, random_indices] 
+    #     else:
+    #         percentage_data_to_request = 1.0
+    #         num_random_indices = int(percentage_data_to_request * num_spatial_indices)  # Compute 30% of total indices
+    #         #shilpa Transmission 1 - this data is transmitted from ego to CAV for request
+    #         random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
+    #         selected_data = flattened_data[:, random_indices]
+        
+
+    #     # print("Expected Indices:", torch.arange(num_spatial_indices, device=flattened_data.device))
+
+    #     #shilpa reconstruction of bev at indiv cav with received data
+    #     zero_tensor = torch.zeros(dim_len, height, width, device=flattened_data.device)
+    #     # Flatten zero_tensor to match the flattened_data shape
+    #     flattened_zero_tensor = zero_tensor.view(dim_len, -1)  # Shape: (128, 32*32)
+    #     # Assign selected_data to the corresponding random indices
+    #     # flattened_zero_tensor[:, random_indices] = selected_data
+    #     flattened_zero_tensor.scatter_(1, random_indices.unsqueeze(0).expand(dim_len, -1), selected_data)
+    #     # Reshape zero_tensor back to (128, 32, 32)
+    #     zero_tensor = flattened_zero_tensor.view(dim_len, height, width)
+    #     reshaped_constructed_data = zero_tensor.unsqueeze(0).unsqueeze(0) #Reshape the tensor to shape [1, 1, 128, 32, 32]
+
+    #     for t in range(x.shape[0]):
+    #         reshaped_constructed_data_all[t] = reshaped_constructed_data
+
+    #     reshaped_constructed_data_all[batch['ego_mat_index'][0].item()] = x[batch['ego_mat_index'][0].item()]
+    #     reshaped_constructed_data_all = rearrange(reshaped_constructed_data_all, '(b l) ... -> b l ...', b=b, l=l)
+        
+    #     return reshaped_constructed_data_all, orig_bev_data_from_all_cav, random_indices
+
+    #shilpa entropy_uplift
+    def forward(self, batch):
         b, l, n, _, _, _ = batch['inputs'].shape
 
         I_inv = \
@@ -562,63 +648,17 @@ class FAXModule(nn.Module):
             if i < len(features)-1:
                 down_sample_block = self.downsample_layers[i]
                 x = down_sample_block(x)
-        #shilpa transform sa fix
+
+       
         x = self.self_attn(x)
 
-        #shilpa select bev points to send to cav
-        #assume 30 % data to request
-        orig_bev_data_from_all_cav = x
+        # Upsample the spatial dimensions to 256x256
+        x = self.upsample(x)  # Upsample to (b*l, d, 256, 256)
+        # Project the feature dimension to 3 channels
+        x = self.output_proj(x)  # Output shape: (b*l, 3, 256, 256)
+
         
-        reshaped_constructed_data_all = torch.zeros_like(x) 
-        data_at_index_0 = x[0]  # Shape: (128, 32, 32)
-        dim_len,height, width = data_at_index_0.shape  # Extract H and W
-        num_spatial_indices = height * width  # Total spatial indices
-        flattened_data = data_at_index_0.view(dim_len, -1)  # Shape: (128, height * width)
-
-        # percentage_data_to_request=0.5 #1.0
-        # num_random_indices = int(percentage_data_to_request * num_spatial_indices)  # Compute 30% of total indices
-        # #shilpa Transmission 1 - this data is transmitted from ego to CAV for request
-        # random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
-        # selected_data = flattened_data[:, random_indices] 
-
-        if prev_avg_entropy is not None:
-            percentage_data_to_request= 0.5
-            # Flatten the entropy tensor
-            flattened_entropy = prev_avg_entropy.flatten()
-            # Calculate the number of top 30 percent indices
-            num_top_indices = int(percentage_data_to_request * flattened_entropy.numel())
-            # Get the indices of the top 30 percent entropy values
-            random_indices = torch.tensor(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
-            # random_indices = torch.from_numpy(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
-
-            selected_data = flattened_data[:, random_indices] 
-        else:
-            percentage_data_to_request = 1.0
-            num_random_indices = int(percentage_data_to_request * num_spatial_indices)  # Compute 30% of total indices
-            #shilpa Transmission 1 - this data is transmitted from ego to CAV for request
-            random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
-            selected_data = flattened_data[:, random_indices]
-        
-
-        # print("Expected Indices:", torch.arange(num_spatial_indices, device=flattened_data.device))
-
-        #shilpa reconstruction of bev at indiv cav with received data
-        zero_tensor = torch.zeros(dim_len, height, width, device=flattened_data.device)
-        # Flatten zero_tensor to match the flattened_data shape
-        flattened_zero_tensor = zero_tensor.view(dim_len, -1)  # Shape: (128, 32*32)
-        # Assign selected_data to the corresponding random indices
-        # flattened_zero_tensor[:, random_indices] = selected_data
-        flattened_zero_tensor.scatter_(1, random_indices.unsqueeze(0).expand(dim_len, -1), selected_data)
-        # Reshape zero_tensor back to (128, 32, 32)
-        zero_tensor = flattened_zero_tensor.view(dim_len, height, width)
-        reshaped_constructed_data = zero_tensor.unsqueeze(0).unsqueeze(0) #Reshape the tensor to shape [1, 1, 128, 32, 32]
-
-        for t in range(x.shape[0]):
-            reshaped_constructed_data_all[t] = reshaped_constructed_data
-
-        reshaped_constructed_data_all[batch['ego_mat_index'][0].item()] = x[batch['ego_mat_index'][0].item()]
-        reshaped_constructed_data_all = rearrange(reshaped_constructed_data_all, '(b l) ... -> b l ...', b=b, l=l)
-        
-        return reshaped_constructed_data_all, orig_bev_data_from_all_cav, random_indices
+        x = rearrange(x, '(b l) ... -> b l ...', b=b, l=l)
+        return x
 
 
