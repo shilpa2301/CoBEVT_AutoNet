@@ -602,23 +602,23 @@ class FAXModule(nn.Module):
 
         # print("Expected Indices:", torch.arange(num_spatial_indices, device=flattened_data.device))
 
-        #shilpa reconstruction of bev at indiv cav with received data
-        zero_tensor = torch.zeros(dim_len, height, width, device=flattened_data.device)
-        # Flatten zero_tensor to match the flattened_data shape
-        flattened_zero_tensor = zero_tensor.view(dim_len, -1)  # Shape: (128, 32*32)
-        # Assign selected_data to the corresponding random indices
-        # flattened_zero_tensor[:, random_indices] = selected_data
-        flattened_zero_tensor.scatter_(1, random_indices.unsqueeze(0).expand(dim_len, -1), selected_data)
-        # Reshape zero_tensor back to (128, 32, 32)
-        zero_tensor = flattened_zero_tensor.view(dim_len, height, width)
-        reshaped_constructed_data = zero_tensor.unsqueeze(0).unsqueeze(0) #Reshape the tensor to shape [1, 1, 128, 32, 32]
+        # #shilpa reconstruction of bev at indiv cav with received data
+        # zero_tensor = torch.zeros(dim_len, height, width, device=flattened_data.device)
+        # # Flatten zero_tensor to match the flattened_data shape
+        # flattened_zero_tensor = zero_tensor.view(dim_len, -1)  # Shape: (128, 32*32)
+        # # Assign selected_data to the corresponding random indices
+        # # flattened_zero_tensor[:, random_indices] = selected_data
+        # flattened_zero_tensor.scatter_(1, random_indices.unsqueeze(0).expand(dim_len, -1), selected_data)
+        # # Reshape zero_tensor back to (128, 32, 32)
+        # zero_tensor = flattened_zero_tensor.view(dim_len, height, width)
+        # reshaped_constructed_data = zero_tensor.unsqueeze(0).unsqueeze(0) #Reshape the tensor to shape [1, 1, 128, 32, 32]
 
-        for t in range(x.shape[0]):
-            reshaped_constructed_data_all[t] = reshaped_constructed_data
+        # for t in range(x.shape[0]):
+        #     reshaped_constructed_data_all[t] = reshaped_constructed_data
 
-        reshaped_constructed_data_all[batch['ego_mat_index'][0].item()] = x[batch['ego_mat_index'][0].item()]
-        reshaped_constructed_data_all = rearrange(reshaped_constructed_data_all, '(b l) ... -> b l ...', b=b, l=l)
+        # reshaped_constructed_data_all[batch['ego_mat_index'][0].item()] = x[batch['ego_mat_index'][0].item()]
+        # reshaped_constructed_data_all = rearrange(reshaped_constructed_data_all, '(b l) ... -> b l ...', b=b, l=l)
         
-        return reshaped_constructed_data_all, orig_bev_data_from_all_cav, random_indices
+        return orig_bev_data_from_all_cav, random_indices
 
 

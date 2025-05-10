@@ -132,9 +132,9 @@ class CorpBEVT(nn.Module):
 
         #shilpa new fax - ca + egosend + cav reconstruction phase 1
         if self.prev_avg_entropy is not None:
-            _, orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, self.prev_avg_entropy)
+            orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, self.prev_avg_entropy)
         else:
-            _, orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
+            orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
         x = orig_bev_data_from_all_cav
 
         x, _ = regroup(x, record_len, self.max_cav)
@@ -264,9 +264,11 @@ class CorpBEVT(nn.Module):
         # Calculate entropy for each pixel using vectorized operations
         entropy_map = entropy(probabilities, axis=2, base=2)
         # Reshape and calculate average entropy over 32x32 buckets
-        bucket_size = 32
-        entropy_map_reshaped = entropy_map.reshape(256//bucket_size, bucket_size, 256//bucket_size, bucket_size)
-        avg_entropy = entropy_map_reshaped.mean(axis=(0, 2))
+        entropy_map = entropy_map.squeeze()
+        bucket_size = 8
+        entropy_map_reshaped = entropy_map.reshape(256 // bucket_size, bucket_size, 256 // bucket_size, bucket_size)
+        # entropy_map_reshaped = entropy_map.reshape(bucket_size, 256//bucket_size, bucket_size, 256//bucket_size)
+        avg_entropy = entropy_map_reshaped.mean(axis=(1, 3))
         #shilpa soft entropy
         # Normalize avg_entropy between 0 and 1
         min_entropy = avg_entropy.min()
