@@ -240,7 +240,7 @@ def main():
             writer.add_scalar('Validate_Loss', valid_ave_loss, epoch)
             writer.add_scalar('Dynamic_Iou', dynamic_ave_iou, epoch)
             writer.add_scalar('Road_IoU', static_ave_iou, epoch)
-            writer.add_scalar('Lane_IoU', static_ave_iou, epoch)
+            writer.add_scalar('Lane_IoU', lane_ave_iou, epoch)
 
         if epoch % hypes['train_params']['save_freq'] == 0:
             torch.save(model_without_ddp.state_dict(),
