@@ -111,7 +111,7 @@ class CorpBEVT(nn.Module):
                                    config['output_class'])
         
         #shilpa entropy
-        self.prev_avg_entropy = None
+        # self.prev_avg_entropy = None
 
     def forward(self, batch_dict):
         x = batch_dict['inputs']
@@ -131,10 +131,13 @@ class CorpBEVT(nn.Module):
         # x = x.squeeze(1)
 
         #shilpa new fax - ca + egosend + cav reconstruction phase 1
-        if self.prev_avg_entropy is not None:
-            orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, self.prev_avg_entropy)
-        else:
-            orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
+        #shilpa entropy
+        orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
+        # if self.prev_avg_entropy is not None:
+        #     orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, self.prev_avg_entropy)
+        # else:
+        #     orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
+        
         x = orig_bev_data_from_all_cav
 
         x, _ = regroup(x, record_len, self.max_cav)
@@ -242,61 +245,45 @@ class CorpBEVT(nn.Module):
         output_dict = self.seg_head(x, b, 1)
 
         #shilpa entropy
-        # Normalize the tensor to get probabilities
-        if self.target == 'static':
-            target_tensor = output_dict['static_seg'].detach().cpu().numpy()
-        else:
-            target_tensor = output_dict['dynamic_seg'].detach().cpu().numpy()
+        # # Normalize the tensor to get probabilities
+        # if self.target == 'static':
+        #     target_tensor = output_dict['static_seg'].detach().cpu().numpy()
+        # else:
+        #     target_tensor = output_dict['dynamic_seg'].detach().cpu().numpy()
             
-        # probabilities = target_tensor / target_tensor.sum(axis=2, keepdims=True)
+        # # probabilities = target_tensor / target_tensor.sum(axis=2, keepdims=True)
+        # # # Add a small epsilon to avoid log(0)
+        # # epsilon = 1e-10
+        # # probabilities += epsilon
+
+        # # Convert logits to probabilities using softmax
+        # exp_logits = np.exp(target_tensor - np.max(target_tensor, axis=2, keepdims=True))  # Stabilize for numerical safety
+        # probabilities = exp_logits / exp_logits.sum(axis=2, keepdims=True)
+
         # # Add a small epsilon to avoid log(0)
         # epsilon = 1e-10
-        # probabilities += epsilon
+        # probabilities = np.clip(probabilities, a_min=epsilon, a_max=None)  # Ensure probabilities are valid
 
-        # Convert logits to probabilities using softmax
-        exp_logits = np.exp(target_tensor - np.max(target_tensor, axis=2, keepdims=True))  # Stabilize for numerical safety
-        probabilities = exp_logits / exp_logits.sum(axis=2, keepdims=True)
+        # # Calculate entropy for each pixel using vectorized operations
+        # entropy_map = entropy(probabilities, axis=2, base=2)
+        # # Reshape and calculate average entropy over 32x32 buckets
+        # entropy_map = entropy_map.squeeze()
+        # bucket_size = 8
+        # entropy_map_reshaped = entropy_map.reshape(256 // bucket_size, bucket_size, 256 // bucket_size, bucket_size)
+        # # entropy_map_reshaped = entropy_map.reshape(bucket_size, 256//bucket_size, bucket_size, 256//bucket_size)
+        # avg_entropy = entropy_map_reshaped.mean(axis=(1, 3))
+        # #shilpa soft entropy
+        # # Normalize avg_entropy between 0 and 1
+        # min_entropy = avg_entropy.min()
+        # max_entropy = avg_entropy.max()
+        # normalized_avg_entropy = (avg_entropy - min_entropy) / (max_entropy - min_entropy)
 
-        # Add a small epsilon to avoid log(0)
-        epsilon = 1e-10
-        probabilities = np.clip(probabilities, a_min=epsilon, a_max=None)  # Ensure probabilities are valid
-
-        # Calculate entropy for each pixel using vectorized operations
-        entropy_map = entropy(probabilities, axis=2, base=2)
-        # Reshape and calculate average entropy over 32x32 buckets
-        entropy_map = entropy_map.squeeze()
-        bucket_size = 8
-        entropy_map_reshaped = entropy_map.reshape(256 // bucket_size, bucket_size, 256 // bucket_size, bucket_size)
-        # entropy_map_reshaped = entropy_map.reshape(bucket_size, 256//bucket_size, bucket_size, 256//bucket_size)
-        avg_entropy = entropy_map_reshaped.mean(axis=(1, 3))
-        #shilpa soft entropy
-        # Normalize avg_entropy between 0 and 1
-        min_entropy = avg_entropy.min()
-        max_entropy = avg_entropy.max()
-        normalized_avg_entropy = (avg_entropy - min_entropy) / (max_entropy - min_entropy)
-
-        # Reshape to desired output shape
-        # self.prev_avg_entropy = torch.tensor(avg_entropy.reshape(1, 1, 1, 32, 32))
-        self.prev_avg_entropy = torch.tensor(normalized_avg_entropy.reshape(1, 1, 1, 32, 32))
+        # # Reshape to desired output shape
+        # # self.prev_avg_entropy = torch.tensor(avg_entropy.reshape(1, 1, 1, 32, 32))
+        # self.prev_avg_entropy = torch.tensor(normalized_avg_entropy.reshape(1, 1, 1, 32, 32))
 
 
 
-        # #shilpa bev dim match
-        # curr_available_bev = output_dict
-        
-        # # Here, selecting the first channel (index 0)
-        # output = output_dict['static_seg'].squeeze(0).squeeze(0)
-
-        # # If you need to resize one specific channel, select it like this:
-        # output_channel = output[0]  # Select the first channel
-
-        # # Ensure the tensor is 4D: [N, C, H, W]
-        # output_channel = output_channel.unsqueeze(0).unsqueeze(0)
-
-        # # Resize to [256, 256]
-        # output_dict['static_seg'] = F.interpolate(output_channel, size=(256, 256), mode='nearest').squeeze(0)
-
-        # # Now output_resized should have the shape [256, 256]
-        # # print(output_dict.shape)  # Output: torch.Size([256, 256])
+       
 
         return output_dict
