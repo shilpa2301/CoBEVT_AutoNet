@@ -106,7 +106,7 @@ class Attention(nn.Module):
         bias = self.relative_position_bias_table(self.relative_position_index)
 
         #shilpa entropy_uplift
-        bias = bias[:sim.size(-2), :sim.size(-1), :]
+        # bias = bias[:sim.size(-2), :sim.size(-1), :]
 
         sim = sim + rearrange(bias, 'i j h -> h i j')
 
@@ -239,111 +239,113 @@ class SwapFusionEncoder(nn.Module):
     Data rearrange -> swap block -> mlp_head
     """
 
-    # def __init__(self, args):
-    #     super(SwapFusionEncoder, self).__init__()
-
-    #     self.layers = nn.ModuleList([])
-    #     self.depth = args['depth']
-
-    #     # block related
-    #     input_dim = args['input_dim']
-    #     mlp_dim = args['mlp_dim']
-    #     agent_size = args['agent_size']
-    #     window_size = args['window_size']
-    #     drop_out = args['drop_out']
-    #     dim_head = args['dim_head']
-
-    #     self.mask = False
-    #     if 'mask' in args:
-    #         self.mask = args['mask']
-
-    #     for i in range(self.depth):
-    #         if self.mask:
-    #             block = SwapFusionBlockMask(input_dim,
-    #                                 mlp_dim,
-    #                                 dim_head,
-    #                                 window_size,
-    #                                 agent_size,
-    #                                 drop_out)
-
-    #         else:
-    #             block = SwapFusionBlock(input_dim,
-    #                                     mlp_dim,
-    #                                     dim_head,
-    #                                     window_size,
-    #                                     agent_size,
-    #                                     drop_out)
-    #         self.layers.append(block)
-
-    #     # mlp head
-    #     self.mlp_head = nn.Sequential(
-    #         Reduce('b m d h w -> b d h w', 'mean'),
-    #         Rearrange('b d h w -> b h w d'),
-    #         nn.LayerNorm(input_dim),
-    #         nn.Linear(input_dim, input_dim),
-    #         Rearrange('b h w d -> b d h w')
-    #     )
-
-    #shilpa entropy_uplift
     def __init__(self, args):
-            super(SwapFusionEncoder, self).__init__()
+        super(SwapFusionEncoder, self).__init__()
 
-            self.layers = nn.ModuleList([])
-            self.depth = args['depth']
+        self.layers = nn.ModuleList([])
+        self.depth = args['depth']
 
-            # Update input_dim to match the new input shape
-            input_dim = 1  # From the new input shape [b, l, 3, 256, 256]
-            mlp_dim = args['mlp_dim']
-            agent_size = args['agent_size']
-            window_size = args['window_size']
-            drop_out = args['drop_out']
-            dim_head = args['dim_head']
+        # block related
+        input_dim = args['input_dim']
+        mlp_dim = args['mlp_dim']
+        agent_size = args['agent_size']
+        window_size = args['window_size']
+        drop_out = args['drop_out']
+        dim_head = args['dim_head']
 
-            self.mask = False
-            if 'mask' in args:
-                self.mask = args['mask']
+        self.mask = False
+        if 'mask' in args:
+            self.mask = args['mask']
 
-            for i in range(self.depth):
-                if self.mask:
-                    block = SwapFusionBlockMask(input_dim,
-                                                mlp_dim,
-                                                dim_head,
-                                                window_size,
-                                                agent_size,
-                                                drop_out)
-                else:
-                    block = SwapFusionBlock(input_dim,
-                                            mlp_dim,
-                                            dim_head,
-                                            window_size,
-                                            agent_size,
-                                            drop_out)
-                self.layers.append(block)
+        for i in range(self.depth):
+            if self.mask:
+                block = SwapFusionBlockMask(input_dim,
+                                    mlp_dim,
+                                    dim_head,
+                                    window_size,
+                                    agent_size,
+                                    drop_out)
 
-            # Updated MLP head for new input_dim
-            self.mlp_head = nn.Sequential(
-                Reduce('b m d h w -> b d h w', 'mean'),  # Reduce the sequence dimension
-                Rearrange('b d h w -> b h w d'),
-                nn.LayerNorm(input_dim),
-                nn.Linear(input_dim, input_dim),  # Linear layer for channel projection
-                Rearrange('b h w d -> b d h w')
-            )
+            else:
+                block = SwapFusionBlock(input_dim,
+                                        mlp_dim,
+                                        dim_head,
+                                        window_size,
+                                        agent_size,
+                                        drop_out)
+            self.layers.append(block)
+
+        # mlp head
+        self.mlp_head = nn.Sequential(
+            Reduce('b m d h w -> b d h w', 'mean'),
+            Rearrange('b d h w -> b h w d'),
+            nn.LayerNorm(input_dim),
+            #shilpa entropy_uplift_2
+            # nn.Linear(256, 256),
+            nn.Linear(input_dim, input_dim),
+            Rearrange('b h w d -> b d h w')
+        )
 
     #shilpa entropy_uplift
-    # def forward(self, x, mask=None):
-    #     for stage in self.layers:
-    #         x = stage(x, mask=mask)
-    #     return self.mlp_head(x)
+    # def __init__(self, args):
+    #         super(SwapFusionEncoder, self).__init__()
 
+    #         self.layers = nn.ModuleList([])
+    #         self.depth = args['depth']
+
+    #         # Update input_dim to match the new input shape
+    #         input_dim = args['input_dim'] #3  # From the new input shape [b, l, 3, 256, 256]
+    #         mlp_dim = args['mlp_dim']
+    #         agent_size = args['agent_size']
+    #         window_size = args['window_size']
+    #         drop_out = args['drop_out']
+    #         dim_head = args['dim_head']
+
+    #         self.mask = False
+    #         if 'mask' in args:
+    #             self.mask = args['mask']
+
+    #         for i in range(self.depth):
+    #             if self.mask:
+    #                 block = SwapFusionBlockMask(input_dim,
+    #                                             mlp_dim,
+    #                                             dim_head,
+    #                                             window_size,
+    #                                             agent_size,
+    #                                             drop_out)
+    #             else:
+    #                 block = SwapFusionBlock(input_dim,
+    #                                         mlp_dim,
+    #                                         dim_head,
+    #                                         window_size,
+    #                                         agent_size,
+    #                                         drop_out)
+    #             self.layers.append(block)
+
+    #         # Updated MLP head for new input_dim
+    #         self.mlp_head = nn.Sequential(
+    #             Reduce('b m d h w -> b d h w', 'mean'),  # Reduce the sequence dimension
+    #             Rearrange('b d h w -> b h w d'),
+    #             nn.LayerNorm(input_dim),
+    #             nn.Linear(input_dim, input_dim),  # Linear layer for channel projection
+    #             Rearrange('b h w d -> b d h w')
+    #         )
+
+    # shilpa entropy_uplift
     def forward(self, x, mask=None):
         for stage in self.layers:
             x = stage(x, mask=mask)
-            # print(f"Shape in stage: {x.shape}")
-        x = self.mlp_head(x)
+        return self.mlp_head(x)
 
-        # Debugging: Print final output shape
-        # print(f"Shape after MLP head: {x.shape}")
-        return x
+    # def forward(self, x, mask=None):
+    #     for stage in self.layers:
+    #         x = stage(x, mask=mask)
+    #         # print(f"Shape in stage: {x.shape}")
+    #     x = self.mlp_head(x)
+
+    #     # Debugging: Print final output shape
+    #     # print(f"Shape after MLP head: {x.shape}")
+    #     return x
 
 
 if __name__ == "__main__":

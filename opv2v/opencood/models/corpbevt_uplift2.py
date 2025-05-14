@@ -93,11 +93,10 @@ class CorpBEVT(nn.Module):
         self.use_roi_mask = config['sttf']['use_roi_mask']
         self.sttf = STTF(config['sttf'])
        
-
         #shilpa entropy_uplift
         # spatial fusion
-        # self.fusion_net = SwapFusionEncoder(config['fax_fusion'])
-        self.fusion_net = SwapFusionEncoder(config['swapfusion_encoder'])
+        self.fusion_net = SwapFusionEncoder(config['fax_fusion'])
+        # self.fusion_net = SwapFusionEncoder(config['swapfusion_encoder'])
 
         # decoder params
         decoder_params = config['decoder']

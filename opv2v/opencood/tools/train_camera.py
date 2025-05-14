@@ -14,6 +14,8 @@ from opencood.tools import multi_gpu_utils
 from opencood.data_utils.datasets import build_dataset
 from opencood.utils.seg_utils import cal_iou_training
 
+import gc
+
 
 
 
@@ -136,6 +138,11 @@ def main():
     print('Training start with num steps of %d' % num_steps)
     # used to help schedule learning rate
     for epoch in range(init_epoch, max(epoches, init_epoch)):
+        #shilpa entropy_uplift
+        # Clear GPU memory
+        torch.cuda.empty_cache()        
+        # Clear any unused memory and force garbage collection
+        gc.collect()
 
         for param_group in optimizer.param_groups:
             print('learning rate %.7f' % param_group["lr"])
@@ -240,7 +247,7 @@ def main():
             writer.add_scalar('Validate_Loss', valid_ave_loss, epoch)
             writer.add_scalar('Dynamic_Iou', dynamic_ave_iou, epoch)
             writer.add_scalar('Road_IoU', static_ave_iou, epoch)
-            writer.add_scalar('Lane_IoU', static_ave_iou, epoch)
+            writer.add_scalar('Lane_IoU', lane_ave_iou, epoch)
 
         if epoch % hypes['train_params']['save_freq'] == 0:
             torch.save(model_without_ddp.state_dict(),

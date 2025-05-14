@@ -8,54 +8,54 @@ from einops import rearrange
 
 
 class BevSegHead(nn.Module):
-    #shilpa entropy_uplift
-    def __init__(self, target, input_dim, output_class):
-        super(BevSegHead, self).__init__()
-        self.target = target
-        if self.target == 'dynamic':
-            self.dynamic_head = nn.Conv2d(input_dim,
-                                          output_class,
-                                          kernel_size=3,
-                                          padding=1)
-        if self.target == 'static':
-            # segmentation head
-            self.static_head = nn.Conv2d(input_dim,
-                                         output_class,
-                                         kernel_size=3,
-                                         padding=1)
-        else:
-            self.dynamic_head = nn.Conv2d(input_dim,
-                                          output_class,
-                                          kernel_size=3,
-                                          padding=1)
-            self.static_head = nn.Conv2d(input_dim,
-                                         output_class,
-                                         kernel_size=3,
-                                         padding=1)
-
+    # shilpa entropy_uplift
     # def __init__(self, target, input_dim, output_class):
     #     super(BevSegHead, self).__init__()
     #     self.target = target
     #     if self.target == 'dynamic':
     #         self.dynamic_head = nn.Conv2d(input_dim,
     #                                       output_class,
-    #                                       kernel_size=127, #15,
-    #                                       padding=63) # 7)
+    #                                       kernel_size=3,
+    #                                       padding=1)
     #     if self.target == 'static':
     #         # segmentation head
     #         self.static_head = nn.Conv2d(input_dim,
     #                                      output_class,
-    #                                      kernel_size=127, #15,
-    #                                      padding=63) #7)
+    #                                      kernel_size=3,
+    #                                      padding=1)
     #     else:
     #         self.dynamic_head = nn.Conv2d(input_dim,
     #                                       output_class,
-    #                                       kernel_size=127, #15,
-    #                                       padding=63) #7)
+    #                                       kernel_size=3,
+    #                                       padding=1)
     #         self.static_head = nn.Conv2d(input_dim,
     #                                      output_class,
-    #                                      kernel_size=127, #15,
-    #                                      padding=63) #7)
+    #                                      kernel_size=3,
+    #                                      padding=1)
+
+    def __init__(self, target, input_dim, output_class):
+        super(BevSegHead, self).__init__()
+        self.target = target
+        if self.target == 'dynamic':
+            self.dynamic_head = nn.Conv2d(input_dim,
+                                          output_class,
+                                          kernel_size=127, #15,
+                                          padding=63) # 7)
+        if self.target == 'static':
+            # segmentation head
+            self.static_head = nn.Conv2d(input_dim,
+                                         output_class,
+                                         kernel_size=127, #15,
+                                         padding=63) #7)
+        else:
+            self.dynamic_head = nn.Conv2d(input_dim,
+                                          output_class,
+                                          kernel_size=127, #15,
+                                          padding=63) #7)
+            self.static_head = nn.Conv2d(input_dim,
+                                         output_class,
+                                         kernel_size=127, #15,
+                                         padding=63) #7)
 
 
     def forward(self,  x, b, l):
