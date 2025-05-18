@@ -111,7 +111,7 @@ class CorpBEVT(nn.Module):
                                    config['output_class'])
         
         #shilpa entropy
-        self.prev_avg_entropy = None
+        # self.prev_avg_entropy = None
 
     def forward(self, batch_dict):
         x = batch_dict['inputs']
