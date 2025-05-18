@@ -511,6 +511,9 @@ class FAXModule(nn.Module):
         self.downsample_layers = nn.ModuleList(downsample_layers)
         self.self_attn = Attention(dim[-1], **config['self_attn'])
 
+        #shilpa channel selection entropy
+        self.prev_avg_entropy = None
+
     
     # shilpa
     # def forward(self, batch):
@@ -604,15 +607,20 @@ class FAXModule(nn.Module):
         
         num_spatial_indices = data_at_index_0.shape[0]
 
-        if prev_avg_entropy is not None:
-                percentage_data_to_request= 0.5
-                # Flatten the entropy tensor
-                flattened_entropy = prev_avg_entropy.flatten()
-                # Calculate the number of top 30 percent indices
-                num_top_indices = int(percentage_data_to_request * flattened_entropy.numel())
-                # Get the indices of the top 30 percent entropy values
-                random_indices = torch.tensor(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
-                # random_indices = torch.from_numpy(np.argsort(flattened_entropy)[-num_top_indices:]).to(flattened_data.device)
+        if self.prev_avg_entropy is not None:
+                percentage_data_to_request= 0.8
+                std_dev = data_at_index_0.std(dim=(1, 2))
+                sorted_std_dev, sorted_indices = torch.sort(std_dev, descending=True)
+
+                # Step 2: Select the top 80%
+                num_elements = std_dev.shape[0]  # Total number of elements (128 in this case)
+                top_k_percent_count = int(num_elements * percentage_data_to_request)  # Calculate 80% of the elements
+
+                # Get the indices of the top 80%
+                top_k_indices = sorted_indices[:top_k_percent_count]
+
+                # Step 3: Shuffle the indices randomly (if needed)
+                random_indices = top_k_indices#[torch.randperm(top_k_percent_count)]
 
  
         else:
@@ -621,6 +629,7 @@ class FAXModule(nn.Module):
                 #shilpa Transmission 1 - this data is transmitted from ego to CAV for request
                 # random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
                 random_indices = torch.arange(num_spatial_indices, device=flattened_data.device)[:num_random_indices]
+                self.prev_avg_entropy = 1
 
         
         
