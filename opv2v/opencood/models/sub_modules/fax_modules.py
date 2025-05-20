@@ -607,6 +607,7 @@ class FAXModule(nn.Module):
         
         num_spatial_indices = data_at_index_0.shape[0]
 
+        # shilpa channel entropy std uncertainty
         if self.prev_avg_entropy is not None:
                 percentage_data_to_request= 0.8
                 std_dev = data_at_index_0.std(dim=(1, 2))
@@ -622,6 +623,32 @@ class FAXModule(nn.Module):
                 # Step 3: Shuffle the indices randomly (if needed)
                 random_indices = top_k_indices#[torch.randperm(top_k_percent_count)]
 
+                #shilpa channel entropy soft
+                # Step 2: Normalize std_dev values between 0 and 1
+                normalized_std_dev = std_dev / std_dev.max()  # Divide by the maximum value in std_dev
+
+                # Step 3: Calculate the average of these normalized probabilities
+                normalized_uncertainty = normalized_std_dev.mean()  # Average of normalized values 
+
+        # #shilpa channel entropy shannon's entropy uncertainty
+        # if self.prev_avg_entropy is not None:
+        #         percentage_data_to_request = 0.8
+            
+        #         # Step 1: Compute Shannon's entropy for each element in data_at_index_0
+        #         # Assuming data_at_index_0 has shape (batch_size, height, width)
+        #         probabilities = data_at_index_0 / data_at_index_0.sum(dim=(1, 2), keepdim=True)  # Normalize to get probabilities
+        #         log_probabilities = torch.log(probabilities + 1e-10)  # Add small epsilon to avoid log(0)
+        #         entropy = -torch.sum(probabilities * log_probabilities, dim=(1, 2))  # Compute entropy for each batch        
+        #         # Step 2: Sort the entropy values in descending order
+        #         sorted_entropy, sorted_indices = torch.sort(entropy, descending=True)        
+        #         # Step 3: Select the top 80%
+        #         num_elements = entropy.shape[0]  # Total number of elements (128 in this case)
+        #         top_k_percent_count = int(num_elements * percentage_data_to_request)  # Calculate 80% of the elements        
+        #         # Get the indices of the top 80%
+        #         top_k_indices = sorted_indices[:top_k_percent_count]        
+        #         # Step 4: Shuffle the indices randomly (if needed)
+        #         random_indices = top_k_indices  # [torch.randperm(top_k_percent_count)]
+
  
         else:
                 percentage_data_to_request = 1.0
@@ -630,9 +657,10 @@ class FAXModule(nn.Module):
                 # random_indices = torch.randperm(num_spatial_indices, device=flattened_data.device)[:num_random_indices]  # Random 30% indices
                 random_indices = torch.arange(num_spatial_indices, device=flattened_data.device)[:num_random_indices]
                 self.prev_avg_entropy = 1
+                normalized_uncertainty = 1.0
 
         
         
-        return orig_bev_data_from_all_cav, random_indices
+        return orig_bev_data_from_all_cav, random_indices,normalized_uncertainty
 
 

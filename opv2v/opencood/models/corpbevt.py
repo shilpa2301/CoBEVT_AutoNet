@@ -136,7 +136,10 @@ class CorpBEVT(nn.Module):
         #     orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict, self.prev_avg_entropy)
         # else:
         #     orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
-        orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
+        
+        orig_bev_data_from_all_cav, selected_indices, normalized_uncertainty = self.fax(batch_dict)
+
+        # orig_bev_data_from_all_cav, selected_indices = self.fax(batch_dict)
 
         x = orig_bev_data_from_all_cav
 
@@ -257,6 +260,10 @@ class CorpBEVT(nn.Module):
     
         x = self.fusion_net(x, com_mask)
         x = x.unsqueeze(1)
+
+        #shilpa channel entropy
+        b = cav_id_0_data.unsqueeze(0).unsqueeze(0)
+        x = (1-normalized_uncertainty)*b + normalized_uncertainty*x
 
         # dynamic head
         x = self.decoder(x)
