@@ -5,7 +5,7 @@ python opencood/visualization/visialize_camera.py [--scene ${SCENE_NUMBER} --sam
 train: 1 GPU::
 python opencood/tools/train_camera.py --hypes_yaml ${CONFIG_FILE} [--model_dir  ${CHECKPOINT_FOLDER}]
 
-python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_orig/config.yaml --model_dir  opencood/checkpoints_orig
+python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_chasel100/config.yaml --model_dir  opencood/checkpoints_chasel100
 CUDA_LAUNCH_BLOCKING=1 python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_test/config.yaml --model_dir  opencood/checkpoints_test
 python opencood/tools/train_camera.py --hypes_yaml opencood/checkpoints_test/camera_config.yaml --model_dir  opencood/checkpoints_test
 

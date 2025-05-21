@@ -609,7 +609,7 @@ class FAXModule(nn.Module):
 
         # shilpa channel entropy std uncertainty
         if self.prev_avg_entropy is not None:
-                percentage_data_to_request= 0.8
+                percentage_data_to_request= 0.6
                 std_dev = data_at_index_0.std(dim=(1, 2))
                 sorted_std_dev, sorted_indices = torch.sort(std_dev, descending=True)
 
@@ -660,7 +660,8 @@ class FAXModule(nn.Module):
                 normalized_uncertainty = 1.0
 
         
-        
-        return orig_bev_data_from_all_cav, random_indices,normalized_uncertainty
+        #shilpa channel entropy soft
+        # return orig_bev_data_from_all_cav, random_indices,normalized_uncertainty
+        return orig_bev_data_from_all_cav, random_indices
 
 
